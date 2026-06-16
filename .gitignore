@@ -1,0 +1,41 @@
+# 依赖
+node_modules
+.pnpm-store
+
+# 前端构建产物
+dist
+*.local
+
+# Rust / Tauri 构建产物
+src-tauri/target
+
+# Tauri 生成物
+src-tauri/gen/schemas
+
+# CI 生成的图标（由 scripts/gen-icon.mjs + `tauri icon` 产出，不入库）
+src-tauri/icons/
+src-tauri/app-icon.png
+
+# 编辑器
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.user
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 学生本地状态（绝不入库；含订阅链接/账密生成的成品）
+*.generated.yaml
+config.json
+
+# 构建产物（仅交付到本地根目录，不入库）
+*.exe
+*.zip
+/Ferry一键启动器/
+app-icon-source.png
+
+# 构建日志
+*.log

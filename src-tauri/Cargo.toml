@@ -1,0 +1,38 @@
+[package]
+name = "claude-launcher"
+version = "1.1.2"
+description = "Claude 一键启动器 — 配置生成 + 链路体检 + Claude 起停"
+authors = ["MAXs"]
+edition = "2021"
+rust-version = "1.77.2"
+
+# Tauri 2 约定：库名带 _lib 后缀，避免在 Windows 上与二进制同名冲突。
+[lib]
+name = "claude_launcher_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# 仅用于「注入后语法体检」，绝不 load→dump（会丢注释与锚点）。
+serde_yaml = "0.9"
+
+# 健康检查：经本地代理端口请求回显源。rustls 自带根证书，免系统依赖，CI/学生机都能跑。
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+# 超时控制（time）+ 基准为域名时的 DNS 解析（net）。
+tokio = { version = "1", features = ["time", "net"] }
+
+[profile.release]
+panic = "abort"     # 减小体积
+codegen-units = 1
+lto = true
+opt-level = "s"     # 体积优先，贴近设计「~10MB 级」目标
+strip = true

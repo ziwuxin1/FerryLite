@@ -487,6 +487,19 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
                 rules.push(format!("- RULE-SET,Google / Domain,{t}"));
                 rules.push(format!("- RULE-SET,Google / IP,{t},no-resolve"));
             }
+            // Google Play 必须在 google 之前命中（catalog 里已置于 google 上方），否则 play.google.com 被 geosite:google 抢走。
+            "googleplay" => {
+                for d in ["play.google.com", "play.googleapis.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "twitch" => {
+                for d in ["twitch.tv", "ttvnw.net", "jtvnw.net"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "therookies" => rules.push(format!("- DOMAIN-SUFFIX,therookies.co,{t}")),
+            "expedia" => rules.push(format!("- DOMAIN-SUFFIX,expedia.com,{t}")),
             "apple" => rules.push(format!("- RULE-SET,Apple / Domain,{t}")),
             "microsoft" => rules.push(format!("- RULE-SET,Microsoft / Domain,{t}")),
             "perforce" => rules.push(format!("- DOMAIN,perforce-maxs.ddns.me,{t}")),
@@ -525,6 +538,10 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("metaai", "meta.ai"),
     ("copilot", "copilot.microsoft.com"),
     ("google", "google.com"),
+    ("googleplay", "play.google.com"),
+    ("twitch", "twitch.tv"),
+    ("therookies", "therookies.co"),
+    ("expedia", "expedia.com"),
     ("apple", "apple.com"),
     ("microsoft", "microsoft.com"),
     ("youtube", "youtube.com"),
@@ -653,7 +670,7 @@ fn icon_domain(key: &str) -> Option<&'static str> {
 /// 其余（AI/券商/银行/房贷/保险/购物/政府/美国加密/TikTok/Unity）=美国独立IP（无独立IP时退回美国-自动）。
 fn default_exit(key: &str, has_indep: bool) -> &'static str {
     const HK: &[&str] = &[
-        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify",
+        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies",
         "telegram", "twitter", "whatsapp", "facebook", "github", "gitlab",
         "stackoverflow", "npm", "dockerhub", "pypi", "huggingface", "vercel",
         "netlify", "atlassian", "bitbucket", "replit", "artstation", "pinterest",
@@ -1248,5 +1265,32 @@ mod tests {
         assert!(y.contains("name: \"Parsec 远程桌面\", type: select, icon: \"https://www.google.com/s2/favicons?domain=parsec.app&sz=64\", proxies: [美国独立IP,"));
         assert!(y.contains("- DOMAIN-SUFFIX,parsec.app,Parsec 远程桌面"));
         assert!(y.contains("- DOMAIN-SUFFIX,parsecgaming.com,Parsec 远程桌面"));
+    }
+
+    #[test]
+    fn new_apps_twitch_rookies_expedia_googleplay() {
+        let mut s = sample();
+        s.split_apps = vec![
+            SplitApp { key: "twitch".into(), name: "Twitch".into(), relay: false },
+            SplitApp { key: "therookies".into(), name: "The Rookies".into(), relay: false },
+            SplitApp { key: "expedia".into(), name: "Expedia".into(), relay: true },
+            SplitApp { key: "googleplay".into(), name: "Google Play".into(), relay: true },
+            SplitApp { key: "google".into(), name: "Google".into(), relay: false },
+        ];
+        let y = inject(&s).unwrap();
+        // 默认出口：twitch/therookies→香港；expedia/googleplay→美国独立IP。
+        assert!(y.contains("name: \"Twitch\", type: select, icon: \"https://www.google.com/s2/favicons?domain=twitch.tv&sz=64\", proxies: [香港-自动,"));
+        assert!(y.contains("name: \"The Rookies\", type: select, icon: \"https://www.google.com/s2/favicons?domain=therookies.co&sz=64\", proxies: [香港-自动,"));
+        assert!(y.contains("name: \"Expedia\", type: select, icon: \"https://www.google.com/s2/favicons?domain=expedia.com&sz=64\", proxies: [美国独立IP,"));
+        assert!(y.contains("name: \"Google Play\", type: select, icon: \"https://www.google.com/s2/favicons?domain=play.google.com&sz=64\", proxies: [美国独立IP,"));
+        // 规则齐全
+        assert!(y.contains("- DOMAIN-SUFFIX,twitch.tv,Twitch"));
+        assert!(y.contains("- DOMAIN-SUFFIX,therookies.co,The Rookies"));
+        assert!(y.contains("- DOMAIN-SUFFIX,expedia.com,Expedia"));
+        assert!(y.contains("- DOMAIN-SUFFIX,play.google.com,Google Play"));
+        // Google Play 规则必须排在 Google 规则集之前（否则 play.google.com 被 geosite:google 抢走）。
+        let pos_play = y.find("DOMAIN-SUFFIX,play.google.com,Google Play").unwrap();
+        let pos_google = y.find("RULE-SET,Google / Domain,Google").unwrap();
+        assert!(pos_play < pos_google, "Google Play 规则应排在 Google 规则集之前");
     }
 }

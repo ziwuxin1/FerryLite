@@ -127,6 +127,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         { key: "disney", label: "Disney+", on: true, relay: false },
         { key: "hbo", label: "HBO Max", on: true, relay: false },
         { key: "spotify", label: "Spotify", on: true, relay: false },
+        { key: "twitch", label: "Twitch", on: true, relay: false },
       ],
     },
     {
@@ -208,6 +209,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         { key: "unrealengine", label: "Unreal Engine", on: true, relay: false },
         { key: "fab", label: "FAB（Epic 素材市场）", on: true, relay: false },
         { key: "unity", label: "Unity", on: true, relay: false },
+        { key: "therookies", label: "The Rookies（therookies.co）", on: true, relay: false },
       ],
     },
     {
@@ -273,6 +275,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         { key: "costco", label: "Costco", on: true, relay: false },
         { key: "newegg", label: "Newegg", on: true, relay: false },
         { key: "homedepot", label: "Home Depot", on: true, relay: false },
+        { key: "expedia", label: "Expedia（旅行 / 酒店机票）", on: true, relay: true },
       ],
     },
     {

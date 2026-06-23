@@ -499,6 +499,7 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
                 }
             }
             "therookies" => rules.push(format!("- DOMAIN-SUFFIX,therookies.co,{t}")),
+            "figma" => rules.push(format!("- DOMAIN-SUFFIX,figma.com,{t}")),
             "expedia" => rules.push(format!("- DOMAIN-SUFFIX,expedia.com,{t}")),
             "apple" => rules.push(format!("- RULE-SET,Apple / Domain,{t}")),
             "microsoft" => rules.push(format!("- RULE-SET,Microsoft / Domain,{t}")),
@@ -541,6 +542,7 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("googleplay", "play.google.com"),
     ("twitch", "twitch.tv"),
     ("therookies", "therookies.co"),
+    ("figma", "figma.com"),
     ("expedia", "expedia.com"),
     ("apple", "apple.com"),
     ("microsoft", "microsoft.com"),
@@ -670,7 +672,7 @@ fn icon_domain(key: &str) -> Option<&'static str> {
 /// 其余（AI/券商/银行/房贷/保险/购物/政府/美国加密/TikTok/Unity）=美国独立IP（无独立IP时退回美国-自动）。
 fn default_exit(key: &str, has_indep: bool) -> &'static str {
     const HK: &[&str] = &[
-        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies",
+        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma",
         "telegram", "twitter", "whatsapp", "facebook", "github", "gitlab",
         "stackoverflow", "npm", "dockerhub", "pypi", "huggingface", "vercel",
         "netlify", "atlassian", "bitbucket", "replit", "artstation", "pinterest",
@@ -1292,5 +1294,14 @@ mod tests {
         let pos_play = y.find("DOMAIN-SUFFIX,play.google.com,Google Play").unwrap();
         let pos_google = y.find("RULE-SET,Google / Domain,Google").unwrap();
         assert!(pos_play < pos_google, "Google Play 规则应排在 Google 规则集之前");
+    }
+
+    #[test]
+    fn figma_split_routes_to_hk() {
+        let mut s = sample();
+        s.split_apps = vec![SplitApp { key: "figma".into(), name: "Figma".into(), relay: false }];
+        let y = inject(&s).unwrap();
+        assert!(y.contains("name: \"Figma\", type: select, icon: \"https://www.google.com/s2/favicons?domain=figma.com&sz=64\", proxies: [香港-自动,"));
+        assert!(y.contains("- DOMAIN-SUFFIX,figma.com,Figma"));
     }
 }

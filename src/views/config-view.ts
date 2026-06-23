@@ -210,6 +210,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         { key: "fab", label: "FAB（Epic 素材市场）", on: true, relay: false },
         { key: "unity", label: "Unity", on: true, relay: false },
         { key: "therookies", label: "The Rookies（therookies.co）", on: true, relay: false },
+        { key: "figma", label: "Figma", on: true, relay: false },
       ],
     },
     {

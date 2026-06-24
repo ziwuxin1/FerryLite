@@ -108,6 +108,135 @@ rules:
   - RULE-SET,Private / Domain,直连
   # 测试域名 → Test（手动测线路用）
   - RULE-SET,TEST / Domain,Test
+  # ==== FakeLocation（IP 归属地修正，来源 Accademia/Additional_Rule_For_Clash）====
+  # 拦 httpdns/分析：国内 App 自带 HTTPDNS 会连硬编码 IP 直接解析、绕过分流→暴露你的海外 IP（发评论显示美国）。
+  # REJECT-DROP 掉这些，逼 App 回退正常 DNS → 走下面的回国路由。
+  - IP-CIDR,47.101.175.206/32,REJECT-DROP,no-resolve
+  - IP-CIDR,47.100.123.169/32,REJECT-DROP,no-resolve
+  - IP-CIDR,120.46.169.234/32,REJECT-DROP,no-resolve
+  - IP-CIDR,121.36.72.124/32,REJECT-DROP,no-resolve
+  - IP-CIDR,116.63.10.135/32,REJECT-DROP,no-resolve
+  - IP-CIDR,122.9.7.134/32,REJECT-DROP,no-resolve
+  - IP-CIDR,117.185.228.108/32,REJECT-DROP,no-resolve
+  - IP-CIDR,117.144.238.29/32,REJECT-DROP,no-resolve
+  - IP-CIDR,122.9.13.79/32,REJECT-DROP,no-resolve
+  - IP-CIDR,122.9.15.129/32,REJECT-DROP,no-resolve
+  - IP-CIDR,101.91.140.224/32,REJECT-DROP,no-resolve
+  - IP-CIDR,101.91.140.124/32,REJECT-DROP,no-resolve
+  - IP-CIDR,114.116.215.110/32,REJECT-DROP,no-resolve
+  - IP-CIDR,116.63.10.31/32,REJECT-DROP,no-resolve
+  - IP-CIDR,112.64.218.119/32,REJECT-DROP,no-resolve
+  - IP-CIDR,112.65.200.117/32,REJECT-DROP,no-resolve
+  - DOMAIN-SUFFIX,httpdns.bilivideo.com,REJECT-DROP
+  - DOMAIN-SUFFIX,httpdns.aliyuncs.com,REJECT-DROP
+  - IP-CIDR,203.107.1.0/24,REJECT-DROP,no-resolve
+  - DOMAIN-SUFFIX,tracker.xiaohongshu.com,REJECT-DROP
+  - DOMAIN-KEYWORD,httpdns,REJECT-DROP
+  - DOMAIN-KEYWORD,httpsdns,REJECT-DROP
+  - DOMAIN-KEYWORD,app-analytics-services,REJECT-DROP
+  # 国内 App 真实域名/IP → 回国（让 App 看到的是中国出口 IP）
+  - DOMAIN-SUFFIX,biliapi.net,回国
+  - DOMAIN-SUFFIX,bilibili.com,回国
+  - IP-CIDR,106.75.74.76/32,回国,no-resolve
+  - IP-CIDR,111.206.25.147/32,回国,no-resolve
+  - IP-CIDR,119.3.238.64/32,回国,no-resolve
+  - IP-CIDR,120.92.108.182/32,回国,no-resolve
+  - IP-CIDR,120.92.113.99/32,回国,no-resolve
+  - IP-CIDR,120.92.153.217/32,回国,no-resolve
+  - IP-CIDR,134.175.207.130/32,回国,no-resolve
+  - DOMAIN-SUFFIX,api6-core-lf.amemv.com,回国
+  - DOMAIN,sso.douyin.com,回国
+  - DOMAIN,www.douyin.com,回国
+  - DOMAIN-SUFFIX,snssdk.com,回国
+  - DOMAIN-SUFFIX,toutiaoapi.com,回国
+  - DOMAIN-KEYWORD,gifshow.com,回国
+  - DOMAIN-KEYWORD,ksapisrv.com,回国
+  - DOMAIN-SUFFIX,httpdns.baidu.com,回国
+  - DOMAIN-SUFFIX,httpdns.baidubce.com,回国
+  - DOMAIN,tiebac.baidu.com,回国
+  - IP-CIDR,180.76.76.0/24,回国,no-resolve
+  - DOMAIN-SUFFIX,wbimg.cn,回国
+  - DOMAIN-SUFFIX,wbimg.com,回国
+  - DOMAIN-SUFFIX,sinaimg.cn,回国
+  - DOMAIN-KEYWORD,weibo,回国
+  - DOMAIN-SUFFIX,ixigua.com,回国
+  - DOMAIN-SUFFIX,guide-acs.taobao.com,回国
+  - DOMAIN-SUFFIX,h-adashx.ut.taobao.com,回国
+  - DOMAIN-SUFFIX,adashx.m.taobao.com,回国
+  - DOMAIN-SUFFIX,amdc.m.taobao.com,回国
+  - DOMAIN,dns.alidns.com,回国
+  - DOMAIN-KEYWORD,acs.m.goofish.com,回国
+  - IP-CIDR,59.82.58.0/24,回国,no-resolve
+  - IP-CIDR,59.82.66.0/24,回国,no-resolve
+  - IP-CIDR,59.82.84.0/24,回国,no-resolve
+  - IP-CIDR,59.82.122.0/24,回国,no-resolve
+  - IP-CIDR,59.82.121.0/24,回国,no-resolve
+  - IP-CIDR,59.82.133.0/24,回国,no-resolve
+  - IP-CIDR,203.119.146.0/24,回国,no-resolve
+  - IP-CIDR,203.119.204.0/24,回国,no-resolve
+  - IP-CIDR,203.119.238.0/24,回国,no-resolve
+  - DOMAIN-SUFFIX,edith.xiaohongshu.com,回国
+  - DOMAIN-SUFFIX,www.xiaohongshu.com,回国
+  - DOMAIN-SUFFIX,zhihu.com,回国
+  - IP-CIDR,43.152.182.14/32,回国,no-resolve
+  - IP-CIDR,43.152.129.54/32,回国,no-resolve
+  - IP-CIDR,43.152.134.28/32,回国,no-resolve
+  - IP-CIDR,120.92.107.7/32,回国,no-resolve
+  - IP-CIDR,103.41.167.0/24,回国,no-resolve
+  - DOMAIN-SUFFIX,douban.com,回国
+  - IP-CIDR,49.233.242.15/32,回国,no-resolve
+  - IP-CIDR,81.70.124.99/32,回国,no-resolve
+  - IP-CIDR,81.70.125.19/32,回国,no-resolve
+  - IP-CIDR,140.143.177.206/32,回国,no-resolve
+  # ---- 国内云盘（阿里云盘/百度网盘/腾讯微云）域名+IP → 回国（httpdns 已被上面通配拦截）----
+  - DOMAIN-SUFFIX,diskapi.baidu.com,回国
+  - DOMAIN-SUFFIX,netdisk.baidu.com,回国
+  - DOMAIN-SUFFIX,pan.baidu.com,回国
+  - DOMAIN-SUFFIX,baidupcs.com,回国
+  - DOMAIN-SUFFIX,wangpan.lcs.baidu.com,回国
+  - DOMAIN-SUFFIX,panpic.baidu.com,回国
+  - DOMAIN-SUFFIX,sofire.baidu.com,回国
+  - DOMAIN-SUFFIX,gips1.baidu.com,回国
+  - DOMAIN-SUFFIX,afd.baidu.com,回国
+  - DOMAIN-SUFFIX,als.baidu.com,回国
+  - DOMAIN-SUFFIX,hmma.baidu.com,回国
+  - DOMAIN-SUFFIX,h2tcbox.baidu.com,回国
+  - DOMAIN-SUFFIX,mbd.baidu.com,回国
+  - DOMAIN-SUFFIX,hm.baidu.com,回国
+  - DOMAIN-SUFFIX,himg.bdimg.com,回国
+  - DOMAIN-SUFFIX,d.pcs.baidu.com,回国
+  - DOMAIN-SUFFIX,ss0.bdstatic.com,回国
+  - DOMAIN-SUFFIX,fyb-2.cdn.bcebos.com,回国
+  - DOMAIN-SUFFIX,weiyun.com,回国
+  - DOMAIN-SUFFIX,imgcache.qq.com,回国
+  - DOMAIN-SUFFIX,aegis.qq.com,回国
+  - DOMAIN-SUFFIX,tianshu.gtimg.cn,回国
+  - DOMAIN-SUFFIX,qzonestyle.gtimg.cn,回国
+  - DOMAIN-SUFFIX,jsonschema.gpic.cn,回国
+  - DOMAIN-SUFFIX,imgcache.aq.com,回国
+  - IP-CIDR,9.141.65.110/32,回国,no-resolve
+  - IP-CIDR,9.141.66.219/32,回国,no-resolve
+  - IP-CIDR,9.141.65.29/32,回国,no-resolve
+  - IP-CIDR,9.141.66.244/32,回国,no-resolve
+  - IP-CIDR,9.141.121.7/32,回国,no-resolve
+  - IP-CIDR,9.146.200.61/32,回国,no-resolve
+  - IP-CIDR,9.146.200.81/32,回国,no-resolve
+  - IP-CIDR,9.146.202.27/32,回国,no-resolve
+  - IP-CIDR,9.146.202.35/32,回国,no-resolve
+  - IP-CIDR,9.146.205.191/32,回国,no-resolve
+  - IP-CIDR,61.181.203.248/32,回国,no-resolve
+  - DOMAIN-SUFFIX,aliyundrive.com,回国
+  - DOMAIN-SUFFIX,aliyundrive.net,回国
+  - DOMAIN-SUFFIX,alipan.com,回国
+  - DOMAIN-SUFFIX,alicdn.com,回国
+  - DOMAIN-SUFFIX,beacon-api.aliyuncs.com,回国
+  - DOMAIN-SUFFIX,arms-retcode.aliyuncs.com,回国
+  - DOMAIN-SUFFIX,oss-enet.aliyuncs.com,回国
+  - DOMAIN-SUFFIX,data.alicloudccp.com,回国
+  - DOMAIN-SUFFIX,fourier.alibaba.com,回国
+  - DOMAIN-SUFFIX,unpm-upaas.uc.cn,回国
+  - DOMAIN-SUFFIX,userver-upaas.uc.cn,回国
+  # ==== FakeLocation 结束 ====
   # 各启用国内 App（指向各自的回国组；排在 China 兜底之前，先命中）
   # <<INJECT_SPLIT_RULES>>
   # 全部国内网站 → 回国（geosite CN + GeoIP CN）

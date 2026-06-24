@@ -1542,6 +1542,14 @@ mod tests {
         assert!(!y.contains("\"YouTube\""), "纯回国应忽略国外 App YouTube");
         assert!(!y.contains("Youtube / Domain"), "纯回国应忽略 YouTube 规则");
         assert!(!y.contains("\"全部国内网站\""), "纯回国应忽略 allcn 组");
+        // FakeLocation：拦 httpdns（逼 App 回退正常 DNS）+ 国内 App 域名/IP → 回国。
+        assert!(y.contains("- DOMAIN-KEYWORD,httpdns,REJECT-DROP"));
+        assert!(y.contains("- DOMAIN-SUFFIX,snssdk.com,回国"));
+        assert!(y.contains("- DOMAIN-SUFFIX,sinaimg.cn,回国"));
+        // 国内云盘（阿里云盘/百度网盘/腾讯微云）→ 回国。
+        assert!(y.contains("- DOMAIN-SUFFIX,pan.baidu.com,回国"));
+        assert!(y.contains("- DOMAIN-SUFFIX,aliyundrive.com,回国"));
+        assert!(y.contains("- DOMAIN-SUFFIX,weiyun.com,回国"));
         // 全部国内 → 回国；其余直连兜底。
         assert!(y.contains("- RULE-SET,China / Domain,回国"));
         assert!(y.contains("- RULE-SET,China / IP,回国,no-resolve"));

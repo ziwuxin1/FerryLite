@@ -110,6 +110,16 @@ rules:
   - RULE-SET,Private / Domain,直连
   # 测试域名 → Test（手动测线路用）
   - RULE-SET,TEST / Domain,Test
+  # ==== 拦 B站 QUIC（UDP 443）→ 逼 B站走 TCP（经回国/台湾节点）====
+  # B站 App 启动会用 QUIC 直连做地区检查，QUIC 绕过 TCP 代理 → 启动泄漏真实 IP → 番剧锁区（重启 App 复现）。
+  # 拦掉 B站 UDP，App 自动回退 TCP，启动地区检查也稳定走代理节点 → 重启也能稳定解锁。
+  - AND,((NETWORK,UDP),(DOMAIN-SUFFIX,bilibili.com)),REJECT-DROP
+  - AND,((NETWORK,UDP),(DOMAIN-SUFFIX,biliapi.net)),REJECT-DROP
+  - AND,((NETWORK,UDP),(DOMAIN-SUFFIX,biliapi.com)),REJECT-DROP
+  - AND,((NETWORK,UDP),(DOMAIN-SUFFIX,bilivideo.com)),REJECT-DROP
+  - AND,((NETWORK,UDP),(DOMAIN-SUFFIX,bilivideo.cn)),REJECT-DROP
+  - AND,((NETWORK,UDP),(DOMAIN-SUFFIX,hdslb.com)),REJECT-DROP
+  - AND,((NETWORK,UDP),(DOMAIN-SUFFIX,acgvideo.com)),REJECT-DROP
   # ==== FakeLocation（IP 归属地修正，来源 Accademia/Additional_Rule_For_Clash）====
   # 拦 httpdns/分析：国内 App 自带 HTTPDNS 会连硬编码 IP 直接解析、绕过分流→暴露你的海外 IP（发评论显示美国）。
   # REJECT-DROP 掉这些，逼 App 回退正常 DNS → 走下面的回国路由。

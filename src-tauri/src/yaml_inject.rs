@@ -1547,6 +1547,8 @@ mod tests {
         assert!(!y.contains("\"YouTube\""), "纯回国应忽略国外 App YouTube");
         assert!(!y.contains("Youtube / Domain"), "纯回国应忽略 YouTube 规则");
         assert!(!y.contains("\"全部国内网站\""), "纯回国应忽略 allcn 组");
+        // 拦 B站 QUIC（逼走 TCP，修复 App 重启地区检查泄漏）。
+        assert!(y.contains("- AND,((NETWORK,UDP),(DOMAIN-SUFFIX,bilibili.com)),REJECT-DROP"));
         // FakeLocation：拦 httpdns（逼 App 回退正常 DNS）+ 国内 App 域名/IP → 回国。
         assert!(y.contains("- DOMAIN-KEYWORD,httpdns,REJECT-DROP"));
         assert!(y.contains("- DOMAIN-SUFFIX,snssdk.com,回国"));

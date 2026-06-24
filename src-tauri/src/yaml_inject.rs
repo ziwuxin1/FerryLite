@@ -653,10 +653,11 @@ fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
     rules.join("\n  ")
 }
 
-/// 策略组图标：用 Google favicon 服务按域名取每个 APP 的真实 logo（zashboard 渲染 `icon` 字段）。
-/// 经 ClashMi TUN 时图标请求也走代理，故国内能加载。如友机实测加载不出，改这里的服务地址即可。
-const FAVICON_PREFIX: &str = "https://www.google.com/s2/favicons?domain=";
-const FAVICON_SUFFIX: &str = "&sz=64";
+/// 策略组图标：用 icon.horse 按域名取每个 APP 的真实 logo（zashboard 渲染 `icon` 字段）。
+/// 之前用 Google favicon，但 Google 抓不到小红书/抖音等国内站（返回地球占位图）；icon.horse 对
+/// 国内外站点都能正确返回图标（实测覆盖小红书/抖音/知乎/阿里云盘等）。如要换源改这两行即可。
+const FAVICON_PREFIX: &str = "https://icon.horse/icon/";
+const FAVICON_SUFFIX: &str = "";
 
 /// APP key → 取图标用的代表域名（与 build_split_rules 的路由域名一致或同品牌主域）。
 const ICON_DOMAINS: &[(&str, &str)] = &[
@@ -1367,10 +1368,10 @@ mod tests {
         ];
         let y = inject(&s).unwrap();
         // 每个 APP 一个独立 select 组，默认出口（首位）按 relay/类别预选。
-        assert!(y.contains("- {name: \"ChatGPT\", type: select, icon: \"https://www.google.com/s2/favicons?domain=openai.com&sz=64\", proxies: [美国独立IP,"));
-        assert!(y.contains("- {name: \"YouTube\", type: select, icon: \"https://www.google.com/s2/favicons?domain=youtube.com&sz=64\", proxies: [香港-自动,"));
-        assert!(y.contains("- {name: \"Binance 币安\", type: select, icon: \"https://www.google.com/s2/favicons?domain=binance.com&sz=64\", proxies: [台湾-自动,"));
-        assert!(y.contains("- {name: \"Rocket Mortgage / Quicken\", type: select, icon: \"https://www.google.com/s2/favicons?domain=rocketmortgage.com&sz=64\", proxies: [美国独立IP,"));
+        assert!(y.contains("- {name: \"ChatGPT\", type: select, icon: \"https://icon.horse/icon/openai.com\", proxies: [美国独立IP,"));
+        assert!(y.contains("- {name: \"YouTube\", type: select, icon: \"https://icon.horse/icon/youtube.com\", proxies: [香港-自动,"));
+        assert!(y.contains("- {name: \"Binance 币安\", type: select, icon: \"https://icon.horse/icon/binance.com\", proxies: [台湾-自动,"));
+        assert!(y.contains("- {name: \"Rocket Mortgage / Quicken\", type: select, icon: \"https://icon.horse/icon/rocketmortgage.com\", proxies: [美国独立IP,"));
         // 规则指向各自的组（组名即 app.name）。
         assert!(y.contains("- RULE-SET,ChatGPT / Domain,ChatGPT"));
         assert!(y.contains("- RULE-SET,Youtube / Domain,YouTube"));
@@ -1396,13 +1397,13 @@ mod tests {
             SplitApp { key: "okx".into(), name: "OKX 欧易".into(), relay: false },
         ];
         let y = inject(&s).unwrap();
-        assert!(y.contains("name: \"Apple\", type: select, icon: \"https://www.google.com/s2/favicons?domain=apple.com&sz=64\", proxies: [直连,"));
-        assert!(y.contains("name: \"Microsoft\", type: select, icon: \"https://www.google.com/s2/favicons?domain=microsoft.com&sz=64\", proxies: [直连,"));
-        assert!(y.contains("name: \"Google\", type: select, icon: \"https://www.google.com/s2/favicons?domain=google.com&sz=64\", proxies: [香港-自动,"));
-        assert!(y.contains("name: \"Steam\", type: select, icon: \"https://www.google.com/s2/favicons?domain=steampowered.com&sz=64\", proxies: [香港-自动,"));
-        assert!(y.contains("name: \"TikTok\", type: select, icon: \"https://www.google.com/s2/favicons?domain=tiktok.com&sz=64\", proxies: [美国独立IP,"));
-        assert!(y.contains("name: \"Coinbase\", type: select, icon: \"https://www.google.com/s2/favicons?domain=coinbase.com&sz=64\", proxies: [美国独立IP,"));
-        assert!(y.contains("name: \"OKX 欧易\", type: select, icon: \"https://www.google.com/s2/favicons?domain=okx.com&sz=64\", proxies: [台湾-自动,"));
+        assert!(y.contains("name: \"Apple\", type: select, icon: \"https://icon.horse/icon/apple.com\", proxies: [直连,"));
+        assert!(y.contains("name: \"Microsoft\", type: select, icon: \"https://icon.horse/icon/microsoft.com\", proxies: [直连,"));
+        assert!(y.contains("name: \"Google\", type: select, icon: \"https://icon.horse/icon/google.com\", proxies: [香港-自动,"));
+        assert!(y.contains("name: \"Steam\", type: select, icon: \"https://icon.horse/icon/steampowered.com\", proxies: [香港-自动,"));
+        assert!(y.contains("name: \"TikTok\", type: select, icon: \"https://icon.horse/icon/tiktok.com\", proxies: [美国独立IP,"));
+        assert!(y.contains("name: \"Coinbase\", type: select, icon: \"https://icon.horse/icon/coinbase.com\", proxies: [美国独立IP,"));
+        assert!(y.contains("name: \"OKX 欧易\", type: select, icon: \"https://icon.horse/icon/okx.com\", proxies: [台湾-自动,"));
     }
 
     #[test]
@@ -1424,7 +1425,7 @@ mod tests {
             relay: true,
         }];
         let y = inject(&s).unwrap();
-        assert!(y.contains("name: \"Parsec 远程桌面\", type: select, icon: \"https://www.google.com/s2/favicons?domain=parsec.app&sz=64\", proxies: [美国独立IP,"));
+        assert!(y.contains("name: \"Parsec 远程桌面\", type: select, icon: \"https://icon.horse/icon/parsec.app\", proxies: [美国独立IP,"));
         assert!(y.contains("- DOMAIN-SUFFIX,parsec.app,Parsec 远程桌面"));
         assert!(y.contains("- DOMAIN-SUFFIX,parsecgaming.com,Parsec 远程桌面"));
     }
@@ -1441,10 +1442,10 @@ mod tests {
         ];
         let y = inject(&s).unwrap();
         // 默认出口：twitch/therookies→香港；expedia/googleplay→美国独立IP。
-        assert!(y.contains("name: \"Twitch\", type: select, icon: \"https://www.google.com/s2/favicons?domain=twitch.tv&sz=64\", proxies: [香港-自动,"));
-        assert!(y.contains("name: \"The Rookies\", type: select, icon: \"https://www.google.com/s2/favicons?domain=therookies.co&sz=64\", proxies: [香港-自动,"));
-        assert!(y.contains("name: \"Expedia\", type: select, icon: \"https://www.google.com/s2/favicons?domain=expedia.com&sz=64\", proxies: [美国独立IP,"));
-        assert!(y.contains("name: \"Google Play\", type: select, icon: \"https://www.google.com/s2/favicons?domain=play.google.com&sz=64\", proxies: [美国独立IP,"));
+        assert!(y.contains("name: \"Twitch\", type: select, icon: \"https://icon.horse/icon/twitch.tv\", proxies: [香港-自动,"));
+        assert!(y.contains("name: \"The Rookies\", type: select, icon: \"https://icon.horse/icon/therookies.co\", proxies: [香港-自动,"));
+        assert!(y.contains("name: \"Expedia\", type: select, icon: \"https://icon.horse/icon/expedia.com\", proxies: [美国独立IP,"));
+        assert!(y.contains("name: \"Google Play\", type: select, icon: \"https://icon.horse/icon/play.google.com\", proxies: [美国独立IP,"));
         // 规则齐全
         assert!(y.contains("- DOMAIN-SUFFIX,twitch.tv,Twitch"));
         assert!(y.contains("- DOMAIN-SUFFIX,therookies.co,The Rookies"));
@@ -1461,7 +1462,7 @@ mod tests {
         let mut s = sample();
         s.split_apps = vec![SplitApp { key: "figma".into(), name: "Figma".into(), relay: false }];
         let y = inject(&s).unwrap();
-        assert!(y.contains("name: \"Figma\", type: select, icon: \"https://www.google.com/s2/favicons?domain=figma.com&sz=64\", proxies: [香港-自动,"));
+        assert!(y.contains("name: \"Figma\", type: select, icon: \"https://icon.horse/icon/figma.com\", proxies: [香港-自动,"));
         assert!(y.contains("- DOMAIN-SUFFIX,figma.com,Figma"));
     }
 
@@ -1474,9 +1475,9 @@ mod tests {
             SplitApp { key: "netease".into(), name: "网易云音乐".into(), relay: false },
         ];
         let y = inject(&s).unwrap();
-        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://www.google.com/s2/favicons?domain=bilibili.com&sz=64\", proxies: [回国-自动,"));
+        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://icon.horse/icon/bilibili.com\", proxies: [回国-自动,"));
         assert!(y.contains("- DOMAIN-SUFFIX,bilibili.com,哔哩哔哩"));
-        assert!(y.contains("name: \"网易云音乐\", type: select, icon: \"https://www.google.com/s2/favicons?domain=music.163.com&sz=64\", proxies: [回国-自动,"));
+        assert!(y.contains("name: \"网易云音乐\", type: select, icon: \"https://icon.horse/icon/music.163.com\", proxies: [回国-自动,"));
         assert!(y.contains("- DOMAIN-SUFFIX,music.163.com,网易云音乐"));
         // 模板含回国-自动地区组（include-all 聚回国机场节点）。
         assert!(y.contains("name: 回国-自动,"));
@@ -1498,7 +1499,7 @@ mod tests {
         ];
         let y = inject(&s).unwrap();
         // 小红书：默认回国-自动 + 图标 + 规则。
-        assert!(y.contains("name: \"小红书\", type: select, icon: \"https://www.google.com/s2/favicons?domain=xiaohongshu.com&sz=64\", proxies: [回国-自动,"));
+        assert!(y.contains("name: \"小红书\", type: select, icon: \"https://icon.horse/icon/xiaohongshu.com\", proxies: [回国-自动,"));
         assert!(y.contains("- DOMAIN-SUFFIX,xiaohongshu.com,小红书"));
         // QQ：qq.com 较广，但 qqmusic/qqvideo/weread 未在本用例不影响；规则存在即可。
         assert!(y.contains("- DOMAIN-SUFFIX,qq.com,QQ"));
@@ -1536,7 +1537,7 @@ mod tests {
         assert!(y.contains("{name: Test, type: select, proxies: [回国-自动, 所有-自动, 直连, 拒绝]}"));
         assert!(y.contains("- RULE-SET,TEST / Domain,Test"));
         // bilibili 生成回国 App 组（纯回国菜单：回国-自动, 所有-自动, 直连, 拒绝）+ 规则。
-        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://www.google.com/s2/favicons?domain=bilibili.com&sz=64\", proxies: [回国-自动, 所有-自动, 直连, 拒绝]"));
+        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://icon.horse/icon/bilibili.com\", proxies: [回国-自动, 所有-自动, 直连, 拒绝]"));
         assert!(y.contains("- DOMAIN-SUFFIX,bilibili.com,哔哩哔哩"));
         // 国外 App（youtube）与 allcn 被忽略：无对应组/规则。
         assert!(!y.contains("\"YouTube\""), "纯回国应忽略国外 App YouTube");

@@ -568,6 +568,57 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
                 }
             }
             "weread" => rules.push(format!("- DOMAIN-SUFFIX,weread.qq.com,{t}")),
+            "xiaohongshu" => {
+                for d in ["xiaohongshu.com", "xhscdn.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "weibo" => {
+                for d in ["weibo.com", "weibo.cn", "sinaimg.cn"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "zhihu" => {
+                for d in ["zhihu.com", "zhimg.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "kuaishou" => {
+                for d in ["kuaishou.com", "gifshow.com", "kwimgs.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            // 百度（搜索 + 网盘）：百度系主域较广，置于 China 兜底之前即可命中回国组。
+            "baidu" => {
+                for d in ["baidu.com", "bdstatic.com", "bdimg.com", "baidupcs.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            // QQ（含微信等腾讯系）：qq.com 较广，但排在 qqmusic/qqvideo/weread 的具体域名之后，故那几个仍走各自组。
+            "qq" => {
+                for d in ["qq.com", "qlogo.cn"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            // 网易（新闻/邮箱）：163.com 较广，排在 netease(music.163.com) 之后，网易云音乐仍走自己组。
+            "wangyi" => {
+                for d in ["163.com", "163.net", "126.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "douban" => {
+                for d in ["douban.com", "doubanio.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "kugou" => rules.push(format!("- DOMAIN-SUFFIX,kugou.com,{t}")),
+            "kuwo" => rules.push(format!("- DOMAIN-SUFFIX,kuwo.cn,{t}")),
+            // 全部国内网站（可选 · 默认关）：复用模板已有 China geosite/geoip 规则集，整体指向回国组。
+            // 注入点在底部 China→国内 之前，勾上即「所有 .cn + 中国 IP → 回国节点」。
+            "allcn" => {
+                rules.push(format!("- RULE-SET,China / Domain,{t}"));
+                rules.push(format!("- RULE-SET,China / IP,{t},no-resolve"));
+            }
             _ => {}
         }
     }
@@ -721,6 +772,17 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("ximalaya", "ximalaya.com"),
     ("douyin", "douyin.com"),
     ("weread", "weread.qq.com"),
+    ("xiaohongshu", "xiaohongshu.com"),
+    ("weibo", "weibo.com"),
+    ("zhihu", "zhihu.com"),
+    ("kuaishou", "kuaishou.com"),
+    ("baidu", "baidu.com"),
+    ("qq", "qq.com"),
+    ("wangyi", "163.com"),
+    ("douban", "douban.com"),
+    ("kugou", "kugou.com"),
+    ("kuwo", "kuwo.cn"),
+    // allcn（全部国内网站）无单一域名图标，留空（build_split_groups 优雅降级）。
 ];
 
 fn icon_domain(key: &str) -> Option<&'static str> {
@@ -735,7 +797,8 @@ fn default_exit(key: &str, has_indep: bool) -> &'static str {
     // 回国方向：国外访问国内 App，默认走回国机场的中国出口节点。
     const BACK: &[&str] = &[
         "netease", "qqmusic", "bilibili", "iqiyi", "youku", "qqvideo", "mgtv", "migu",
-        "ximalaya", "douyin", "weread",
+        "ximalaya", "douyin", "weread", "xiaohongshu", "weibo", "zhihu", "kuaishou",
+        "baidu", "qq", "wangyi", "douban", "kugou", "kuwo", "allcn",
     ];
     const HK: &[&str] = &[
         "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma",
@@ -1392,6 +1455,32 @@ mod tests {
         let pos_bili = y.find("DOMAIN-SUFFIX,bilibili.com,哔哩哔哩").unwrap();
         let pos_china = y.find("RULE-SET,China / Domain,国内").unwrap();
         assert!(pos_bili < pos_china, "国内 App 规则应排在 China 兜底之前");
+        serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
+    }
+
+    #[test]
+    fn back_china_extra_apps_and_allcn() {
+        // 第二批回国 App + 「全部国内网站」可选项（geosite CN + GeoIP CN → 回国组）。
+        let mut s = sample();
+        s.split_apps = vec![
+            SplitApp { key: "xiaohongshu".into(), name: "小红书".into(), relay: false },
+            SplitApp { key: "qq".into(), name: "QQ".into(), relay: false },
+            SplitApp { key: "allcn".into(), name: "全部国内网站".into(), relay: false },
+        ];
+        let y = inject(&s).unwrap();
+        // 小红书：默认回国-自动 + 图标 + 规则。
+        assert!(y.contains("name: \"小红书\", type: select, icon: \"https://www.google.com/s2/favicons?domain=xiaohongshu.com&sz=64\", proxies: [回国-自动,"));
+        assert!(y.contains("- DOMAIN-SUFFIX,xiaohongshu.com,小红书"));
+        // QQ：qq.com 较广，但 qqmusic/qqvideo/weread 未在本用例不影响；规则存在即可。
+        assert!(y.contains("- DOMAIN-SUFFIX,qq.com,QQ"));
+        // 全部国内网站：无图标的 select 组 + 复用 China 规则集指向该组。
+        assert!(y.contains("name: \"全部国内网站\", type: select, proxies: [回国-自动,"));
+        assert!(y.contains("- RULE-SET,China / Domain,全部国内网站"));
+        assert!(y.contains("- RULE-SET,China / IP,全部国内网站,no-resolve"));
+        // allcn 的 China 规则必须排在底部 China→国内 之前，否则被国内→直连抢走。
+        let pos_top = y.find("RULE-SET,China / Domain,全部国内网站").unwrap();
+        let pos_bottom = y.find("RULE-SET,China / Domain,国内").unwrap();
+        assert!(pos_top < pos_bottom, "全部国内网站规则应排在 China 兜底之前");
         serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
     }
 }

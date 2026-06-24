@@ -137,6 +137,12 @@ rules:
   # 国内 App 真实域名/IP → 回国（让 App 看到的是中国出口 IP）
   - DOMAIN-SUFFIX,biliapi.net,回国
   - DOMAIN-SUFFIX,bilibili.com,回国
+  # B站番剧地区解锁补全：api.biliapi.com(.com 后缀，番剧 API) + 视频/静态 CDN（参考 elysias123/bilibili-rule）
+  - DOMAIN-SUFFIX,biliapi.com,回国
+  - DOMAIN-SUFFIX,hdslb.com,回国
+  - DOMAIN-SUFFIX,bilivideo.com,回国
+  - DOMAIN-SUFFIX,bilivideo.cn,回国
+  - DOMAIN-SUFFIX,acgvideo.com,回国
   - IP-CIDR,106.75.74.76/32,回国,no-resolve
   - IP-CIDR,111.206.25.147/32,回国,no-resolve
   - IP-CIDR,119.3.238.64/32,回国,no-resolve

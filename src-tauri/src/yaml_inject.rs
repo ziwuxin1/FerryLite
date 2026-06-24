@@ -1547,6 +1547,8 @@ mod tests {
         assert!(y.contains("- DOMAIN-KEYWORD,httpdns,REJECT-DROP"));
         assert!(y.contains("- DOMAIN-SUFFIX,snssdk.com,回国"));
         assert!(y.contains("- DOMAIN-SUFFIX,sinaimg.cn,回国"));
+        // B站番剧解锁补全：api.biliapi.com(.com 后缀)。
+        assert!(y.contains("- DOMAIN-SUFFIX,biliapi.com,回国"));
         // 国内云盘（阿里云盘/百度网盘/腾讯微云）→ 回国。
         assert!(y.contains("- DOMAIN-SUFFIX,pan.baidu.com,回国"));
         assert!(y.contains("- DOMAIN-SUFFIX,aliyundrive.com,回国"));

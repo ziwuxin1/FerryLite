@@ -1530,9 +1530,11 @@ mod tests {
         assert!(!y.contains("香港-自动"), "纯回国不应出现香港-自动");
         assert!(!y.contains("美国-自动"), "纯回国不应出现美国-自动");
         assert!(!y.contains("美国独立IP"), "纯回国不应出现美国独立IP");
-        // 保留回国主组 + 回国-自动。
+        // 保留回国主组 + 回国-自动 + Test（手动测线路用，菜单仅纯回国出口）。
         assert!(y.contains("{name: 回国, type: select"));
         assert!(y.contains("name: 回国-自动,"));
+        assert!(y.contains("{name: Test, type: select, proxies: [回国-自动, 所有-自动, 直连, 拒绝]}"));
+        assert!(y.contains("- RULE-SET,TEST / Domain,Test"));
         // bilibili 生成回国 App 组（纯回国菜单：回国-自动, 所有-自动, 直连, 拒绝）+ 规则。
         assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://www.google.com/s2/favicons?domain=bilibili.com&sz=64\", proxies: [回国-自动, 所有-自动, 直连, 拒绝]"));
         assert!(y.contains("- DOMAIN-SUFFIX,bilibili.com,哔哩哔哩"));

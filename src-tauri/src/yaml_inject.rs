@@ -9,6 +9,12 @@ use std::collections::HashSet;
 /// 带锚点标记的模板（编译期嵌入 exe，运行时自包含，无需外部文件）。
 pub const TEMPLATE: &str = include_str!("../templates/MAXs_template_anchored.yaml");
 
+/// 纯回国模式模板：人在国外，国内→回国节点、其余→直连，去掉所有翻墙地区组。
+/// 只含 3 个锚点（机场 / 各国内 App 组 / 各国内 App 规则），其余锚点在此模板里不存在，
+/// inject() 对应的 replace() 自然成为 no-op。
+pub const TEMPLATE_BACKCN: &str =
+    include_str!("../templates/MAXs_template_backcn_anchored.yaml");
+
 /// 出口 IP 验证回显域名。注入为「强制走 Claude 组」的规则；health 模块据此构造回显请求。
 /// 二者主机名必须严格一致（见 health::ECHO_URLS）。
 pub const VERIFY_DOMAINS: [&str; 4] = ["api.ipify.org", "ifconfig.me", "ip.sb", "ipinfo.io"];
@@ -73,6 +79,10 @@ pub struct GenerateInput {
     /// 傻瓜式分流（APP 级）：每个启用的 APP 一项；relay=true 走独立IP(含中转)、false 走机场美国节点。空=全按默认规则。
     #[serde(default)]
     pub split_apps: Vec<SplitApp>,
+    /// 纯回国模式：人在国外，国内→回国节点、其余→直连，去掉所有翻墙地区组。
+    /// 为 true 时用 TEMPLATE_BACKCN，且只处理回国类 App（其余 App / 独立IP 忽略）。
+    #[serde(default)]
+    pub back_cn_only: bool,
 }
 
 /// 分流的单个 APP 选择。key=APP 标识；name=该 APP 的策略组名（zashboard 里显示，用户逐个切换出口）；
@@ -153,16 +163,21 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
         .collect::<Vec<_>>()
         .join("\n  ");
 
-    let mut yaml = TEMPLATE
+    // 纯回国模式用专属模板；其缺少的锚点（独立IP节点 / Claude组 / 顶部&验证规则）对应的 replace() 为 no-op。
+    let back = input.back_cn_only;
+    let template = if back { TEMPLATE_BACKCN } else { TEMPLATE };
+
+    let mut yaml = template
         .replace(ANCHOR_PROVIDERS, &providers_block)
         .replace(ANCHOR_PROXY_NODE, &node_block)
         .replace(ANCHOR_CLAUDE_GROUP, &build_claude_group(has_indep, &primary))
-        .replace(ANCHOR_SPLIT_GROUPS, &build_split_groups(&input.split_apps, has_indep))
+        .replace(ANCHOR_SPLIT_GROUPS, &build_split_groups(&input.split_apps, has_indep, back))
         .replace(ANCHOR_TOP_RULES, &build_top_rules())
-        .replace(ANCHOR_SPLIT_RULES, &build_split_rules(&input.split_apps))
+        .replace(ANCHOR_SPLIT_RULES, &build_split_rules(&input.split_apps, back))
         .replace(ANCHOR_VERIFY_RULES, &build_verify_rules());
 
-    if !has_indep {
+    // 纯回国模板本就不含「美国独立IP」引用；非回国且无独立IP 时才需清理模板里的占位引用。
+    if !has_indep && !back {
         yaml = strip_independent_refs(&yaml);
     }
 
@@ -234,14 +249,27 @@ fn build_verify_rules() -> String {
     String::new()
 }
 
+/// 回国类 App 集合（国外访问国内）：默认出口=回国-自动；纯回国模式下也只处理这些 App。
+/// 注意 `allcn`（全部国内网站）在此集合内，但纯回国模式会单独排除它（模板已含 China→回国 兜底）。
+const BACK_APPS: &[&str] = &[
+    "netease", "qqmusic", "bilibili", "iqiyi", "youku", "qqvideo", "mgtv", "migu", "ximalaya",
+    "douyin", "weread", "xiaohongshu", "weibo", "zhihu", "kuaishou", "baidu", "qq", "wangyi",
+    "douban", "kugou", "kuwo", "allcn",
+];
+
 /// 傻瓜式分流（APP 级）：把每个启用 APP 的域名规则置顶路由到「该 APP 自己的策略组」（组名=app.name，
 /// 在 Claude/TEST/兜底之前命中）。每组默认出口由 build_split_groups 按 relay/类别预选，用户可在 zashboard 逐个切换。
 /// 复用模板已有 rule-provider 名（带 ` / Domain`/` / IP` 后缀）；无 provider 的站点内联 DOMAIN-SUFFIX。
-fn build_split_rules(apps: &[SplitApp]) -> String {
+fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
     let mut rules: Vec<String> = Vec::new();
     for app in apps {
+        let key = app.key.as_str();
+        // 纯回国模式：只生成回国类 App 的规则；allcn 跳过（模板已含 China→回国 兜底）；其余 App 忽略。
+        if back_cn_only && (!BACK_APPS.contains(&key) || key == "allcn") {
+            continue;
+        }
         let t = app.name.as_str(); // 目标 = 该 APP 自己的策略组（组名即 app.name）
-        match app.key.as_str() {
+        match key {
             "chatgpt" => rules.push(format!("- RULE-SET,ChatGPT / Domain,{t}")),
             "gemini" => rules.push(format!("- RULE-SET,Gemini / Domain,{t}")),
             "perplexity" => rules.push(format!("- RULE-SET,Perplexity / Domain,{t}")),
@@ -794,12 +822,6 @@ fn icon_domain(key: &str) -> Option<&'static str> {
 /// 香港-自动=流媒体/社媒/开发者/设计/游戏/Google/Perforce；
 /// 其余（AI/券商/银行/房贷/保险/购物/政府/美国加密/TikTok/Unity）=美国独立IP（无独立IP时退回美国-自动）。
 fn default_exit(key: &str, has_indep: bool) -> &'static str {
-    // 回国方向：国外访问国内 App，默认走回国机场的中国出口节点。
-    const BACK: &[&str] = &[
-        "netease", "qqmusic", "bilibili", "iqiyi", "youku", "qqvideo", "mgtv", "migu",
-        "ximalaya", "douyin", "weread", "xiaohongshu", "weibo", "zhihu", "kuaishou",
-        "baidu", "qq", "wangyi", "douban", "kugou", "kuwo", "allcn",
-    ];
     const HK: &[&str] = &[
         "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma",
         "telegram", "twitter", "whatsapp", "facebook", "github", "gitlab",
@@ -813,7 +835,7 @@ fn default_exit(key: &str, has_indep: bool) -> &'static str {
     const DIRECT: &[&str] = &["apple", "microsoft"];
     if DIRECT.contains(&key) {
         "直连"
-    } else if BACK.contains(&key) {
+    } else if BACK_APPS.contains(&key) {
         "回国-自动"
     } else if TW.contains(&key) {
         "台湾-自动"
@@ -828,9 +850,11 @@ fn default_exit(key: &str, has_indep: bool) -> &'static str {
 
 /// 傻瓜式分流（APP 级）：为每个启用的 APP 生成一个独立 select 策略组（组名=app.name），
 /// proxies 是完整出口菜单、默认出口（首位）按 default_exit 的固定映射预选；用户在 zashboard 里逐个切换。
-fn build_split_groups(apps: &[SplitApp], has_indep: bool) -> String {
-    // 完整出口菜单（用户逐 APP 自选）。无独立 IP 时去掉「美国独立IP」。
-    let menu: &[&str] = if has_indep {
+fn build_split_groups(apps: &[SplitApp], has_indep: bool, back_cn_only: bool) -> String {
+    // 完整出口菜单（用户逐 APP 自选）。纯回国模式只保留回国相关组；无独立 IP 时去掉「美国独立IP」。
+    let menu: &[&str] = if back_cn_only {
+        &["回国-自动", "所有-自动", "直连", "拒绝"]
+    } else if has_indep {
         &[
             "美国独立IP", "美国-自动", "香港-自动", "台湾-自动", "日本-自动", "新加坡-自动",
             "韩国-自动", "回国-自动", "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
@@ -844,8 +868,12 @@ fn build_split_groups(apps: &[SplitApp], has_indep: bool) -> String {
     let mut groups: Vec<String> = Vec::new();
     for app in apps {
         let key = app.key.as_str();
-        // 默认出口（首位=zashboard 导入后默认选中）：按 default_exit 固定映射预选。
-        let primary: &str = default_exit(key, has_indep);
+        // 纯回国模式：只为回国类 App 生成组；allcn 跳过（走模板 China→回国 兜底）；其余 App 忽略。
+        if back_cn_only && (!BACK_APPS.contains(&key) || key == "allcn") {
+            continue;
+        }
+        // 默认出口（首位=zashboard 导入后默认选中）：纯回国一律回国-自动，否则按 default_exit 固定映射。
+        let primary: &str = if back_cn_only { "回国-自动" } else { default_exit(key, has_indep) };
         let mut proxies: Vec<&str> = vec![primary];
         for &p in menu {
             if p != primary {
@@ -1140,6 +1168,7 @@ mod tests {
                 dialer_proxy: "美国-自动".into(),
             }],
             split_apps: vec![],
+            back_cn_only: false,
         }
     }
 
@@ -1482,5 +1511,39 @@ mod tests {
         let pos_bottom = y.find("RULE-SET,China / Domain,国内").unwrap();
         assert!(pos_top < pos_bottom, "全部国内网站规则应排在 China 兜底之前");
         serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
+    }
+
+    #[test]
+    fn back_cn_only_mode_strips_proxy_groups_and_routes_china() {
+        // 纯回国模式：用专属模板，去掉翻墙地区组；国内→回国、其余→直连。
+        let mut s = sample();
+        s.back_cn_only = true;
+        s.independent_nodes = vec![]; // 纯回国无独立IP
+        s.split_apps = vec![
+            SplitApp { key: "bilibili".into(), name: "哔哩哔哩".into(), relay: false },
+            // 国外 App 与 allcn 在纯回国模式应被忽略（不生成组/规则）。
+            SplitApp { key: "youtube".into(), name: "YouTube".into(), relay: false },
+            SplitApp { key: "allcn".into(), name: "全部国内网站".into(), relay: false },
+        ];
+        let y = inject(&s).unwrap();
+        // 翻墙地区组 / 独立IP 一律不存在。
+        assert!(!y.contains("香港-自动"), "纯回国不应出现香港-自动");
+        assert!(!y.contains("美国-自动"), "纯回国不应出现美国-自动");
+        assert!(!y.contains("美国独立IP"), "纯回国不应出现美国独立IP");
+        // 保留回国主组 + 回国-自动。
+        assert!(y.contains("{name: 回国, type: select"));
+        assert!(y.contains("name: 回国-自动,"));
+        // bilibili 生成回国 App 组（纯回国菜单：回国-自动, 所有-自动, 直连, 拒绝）+ 规则。
+        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://www.google.com/s2/favicons?domain=bilibili.com&sz=64\", proxies: [回国-自动, 所有-自动, 直连, 拒绝]"));
+        assert!(y.contains("- DOMAIN-SUFFIX,bilibili.com,哔哩哔哩"));
+        // 国外 App（youtube）与 allcn 被忽略：无对应组/规则。
+        assert!(!y.contains("\"YouTube\""), "纯回国应忽略国外 App YouTube");
+        assert!(!y.contains("Youtube / Domain"), "纯回国应忽略 YouTube 规则");
+        assert!(!y.contains("\"全部国内网站\""), "纯回国应忽略 allcn 组");
+        // 全部国内 → 回国；其余直连兜底。
+        assert!(y.contains("- RULE-SET,China / Domain,回国"));
+        assert!(y.contains("- RULE-SET,China / IP,回国,no-resolve"));
+        assert!(y.contains("- MATCH,直连"));
+        serde_yaml::from_str::<serde_yaml::Value>(&y).expect("纯回国注入后应为合法 yaml");
     }
 }

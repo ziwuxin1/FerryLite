@@ -25,6 +25,8 @@ export interface GenerateInput {
   airports: Airport[];
   independentNodes: IndependentNodeInput[];
   splitApps: { key: string; relay: boolean; name: string }[];
+  /** 纯回国模式：国内→回国节点、其余→直连，去掉翻墙地区组（给 OpenClash 用）。 */
+  backCnOnly?: boolean;
 }
 
 export interface GenerateResult {

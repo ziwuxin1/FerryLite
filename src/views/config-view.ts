@@ -13,6 +13,9 @@ interface AirportRow {
 export function renderConfigView(root: HTMLElement, onDone: () => void): void {
   const status = el("div", { class: "status-line" });
 
+  // 纯回国模式开关：人在国外，国内→回国节点、其余→直连，去掉翻墙地区组（导出 yaml 给 OpenClash 用）。
+  const pureBackCn = el("input", { type: "checkbox" }) as HTMLInputElement;
+
   // ---- 机场（可多个）----
   const airportRows: AirportRow[] = [];
   const airportList = el("div", {});
@@ -333,6 +336,11 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       ],
     },
   ];
+  // 「回国」分类的索引与 key 集合：纯回国模式只保留这一类、且只提交这些 key。
+  const backCatIndex = APP_CATALOG.findIndex((c) => c.cat.startsWith("回国"));
+  const backCnKeys = new Set(
+    backCatIndex >= 0 ? APP_CATALOG[backCatIndex].apps.map((a) => a.key) : [],
+  );
   const appControls: { key: string; name: string; on: HTMLInputElement; relay: HTMLInputElement }[] = [];
   // 各分类「全选」框的刷新器：全局全选/反选后调用，让分类框跟随。
   const catAllUpdaters: (() => void)[] = [];
@@ -459,26 +467,31 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
     const airports = airportRows
       .map((r) => ({ name: r.name.value.trim(), url: r.url.value.trim() }))
       .filter((a) => a.name !== "" || a.url !== "");
+    const pure = pureBackCn.checked;
     const payload: GenerateInput = {
       airports,
-      independentNodes: enableIndep.checked
-        ? [
-            {
-              name: nodeName.value.trim() || "美国独立IP",
-              protocol: protocol.value as Protocol,
-              server: server.value.trim(),
-              port: Number.isFinite(parsedPort) ? parsedPort : 0,
-              username: username.value,
-              password: password.value,
-              tls: tls.checked,
-              exitIp: exitIp.value.trim(),
-              dialerProxy: "美国-中转",
-            },
-          ]
-        : [],
+      // 纯回国模式无独立IP；否则按开关决定是否带独立IP节点。
+      independentNodes:
+        !pure && enableIndep.checked
+          ? [
+              {
+                name: nodeName.value.trim() || "美国独立IP",
+                protocol: protocol.value as Protocol,
+                server: server.value.trim(),
+                port: Number.isFinite(parsedPort) ? parsedPort : 0,
+                username: username.value,
+                password: password.value,
+                tls: tls.checked,
+                exitIp: exitIp.value.trim(),
+                dialerProxy: "美国-中转",
+              },
+            ]
+          : [],
+      // 纯回国模式只提交「回国」分类里勾选的 App（其余忽略；allcn 由后端按需跳过）。
       splitApps: appControls
-        .filter((c) => c.on.checked)
+        .filter((c) => c.on.checked && (!pure || backCnKeys.has(c.key)))
         .map((c) => ({ key: c.key, relay: c.relay.checked, name: c.name })),
+      backCnOnly: pure,
     };
     try {
       const result = await api.generateConfig(payload);
@@ -513,6 +526,36 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
     }
   }
 
+  // 独立 IP 卡片（提出来便于纯回国模式隐藏）。
+  const indepCard = el("div", { class: "card" }, [
+    el("label", { class: "checkbox-row" }, [
+      enableIndep,
+      el("span", {}, ["启用独立 IP（美国静态家宽 · 账密代理）"]),
+    ]),
+    el("div", { class: "field-hint" }, [
+      "没有独立 IP 就关掉它 —— Claude 等将直接走机场美国节点（不做独立IP出口校验）。",
+    ]),
+    indepBody,
+  ]);
+
+  // 纯回国模式卡片 + 切换：开启则隐藏独立IP卡片与所有非「回国」分类，只留回国分流。
+  const pureCard = el("div", { class: "card" }, [
+    el("label", { class: "checkbox-row" }, [
+      pureBackCn,
+      el("span", { style: "font-weight:700" }, ["纯回国模式（人在国外 · 国内走回国节点 · 其余直连）"]),
+    ]),
+    el("div", { class: "field-hint" }, [
+      "打开后：把「回国机场订阅」当普通机场添加，生成的配置 国内（含所选 App）→ 回国节点、其余 → 直连，并去掉所有翻墙地区组（香港/美国/独立IP…）。导出的 yaml 可直接给 OpenClash / ClashMi 用。下方「回国」分类按需勾选；不勾也会整体走回国。",
+    ]),
+  ]);
+  pureBackCn.onchange = (): void => {
+    const pure = pureBackCn.checked;
+    indepCard.style.display = pure ? "none" : "";
+    splitSections.forEach((sec, i) => {
+      (sec as HTMLElement).style.display = pure && i !== backCatIndex ? "none" : "";
+    });
+  };
+
   const view = el("div", {}, [
     el("div", { class: "topbar" }, [
       el("div", {}, [
@@ -521,6 +564,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       ]),
       el("button", { class: "btn", onclick: onDone }, ["← 返回状态盘"]),
     ]),
+    pureCard,
     el("div", { class: "card" }, [
       el("h2", {}, ["机场订阅（可多个）"]),
       airportList,
@@ -531,16 +575,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         "每个机场一个名字 + 订阅链接；至少一个机场，且需含美国节点（独立 IP 的链式中转要靠它）。",
       ]),
     ]),
-    el("div", { class: "card" }, [
-      el("label", { class: "checkbox-row" }, [
-        enableIndep,
-        el("span", {}, ["启用独立 IP（美国静态家宽 · 账密代理）"]),
-      ]),
-      el("div", { class: "field-hint" }, [
-        "没有独立 IP 就关掉它 —— Claude 等将直接走机场美国节点（不做独立IP出口校验）。",
-      ]),
-      indepBody,
-    ]),
+    indepCard,
     splitCard,
     el("div", { class: "card" }, [submit, status]),
   ]);

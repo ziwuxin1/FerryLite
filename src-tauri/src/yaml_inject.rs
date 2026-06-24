@@ -560,7 +560,11 @@ fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
                 }
             }
             "bilibili" => {
-                for d in ["bilibili.com", "hdslb.com", "biliapi.net", "bilivideo.com"] {
+                // 番剧需完整：biliapi.com(.com 后缀=番剧 API) + 视频 CDN 各后缀（参考 elysias123/bilibili-rule）。
+                for d in [
+                    "bilibili.com", "biliapi.net", "biliapi.com", "hdslb.com",
+                    "bilivideo.com", "bilivideo.cn", "acgvideo.com",
+                ] {
                     rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
                 }
             }
@@ -854,7 +858,7 @@ fn default_exit(key: &str, has_indep: bool) -> &'static str {
 fn build_split_groups(apps: &[SplitApp], has_indep: bool, back_cn_only: bool) -> String {
     // 完整出口菜单（用户逐 APP 自选）。纯回国模式只保留回国相关组；无独立 IP 时去掉「美国独立IP」。
     let menu: &[&str] = if back_cn_only {
-        &["回国-自动", "所有-自动", "直连", "拒绝"]
+        &["回国-自动", "所有-自动", "所有-手动", "直连", "拒绝"]
     } else if has_indep {
         &[
             "美国独立IP", "美国-自动", "香港-自动", "台湾-自动", "日本-自动", "新加坡-自动",
@@ -1534,10 +1538,10 @@ mod tests {
         // 保留回国主组 + 回国-自动 + Test（手动测线路用，菜单仅纯回国出口）。
         assert!(y.contains("{name: 回国, type: select"));
         assert!(y.contains("name: 回国-自动,"));
-        assert!(y.contains("{name: Test, type: select, proxies: [回国-自动, 所有-自动, 直连, 拒绝]}"));
+        assert!(y.contains("{name: Test, type: select, proxies: [回国-自动, 所有-自动, 所有-手动, 直连, 拒绝]}"));
         assert!(y.contains("- RULE-SET,TEST / Domain,Test"));
         // bilibili 生成回国 App 组（纯回国菜单：回国-自动, 所有-自动, 直连, 拒绝）+ 规则。
-        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://icon.horse/icon/bilibili.com\", proxies: [回国-自动, 所有-自动, 直连, 拒绝]"));
+        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://icon.horse/icon/bilibili.com\", proxies: [回国-自动, 所有-自动, 所有-手动, 直连, 拒绝]"));
         assert!(y.contains("- DOMAIN-SUFFIX,bilibili.com,哔哩哔哩"));
         // 国外 App（youtube）与 allcn 被忽略：无对应组/规则。
         assert!(!y.contains("\"YouTube\""), "纯回国应忽略国外 App YouTube");

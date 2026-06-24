@@ -83,9 +83,9 @@ profile:
 # ========================
 proxy-groups:
   # 主切换：默认走「回国-自动」；某 App 在回国节点上不行时，可切「所有-自动 / 直连」。
-  - {name: 回国, type: select, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cn.svg", proxies: [回国-自动, 所有-自动, 直连, 拒绝]}
+  - {name: 回国, type: select, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cn.svg", proxies: [回国-自动, 所有-自动, 所有-手动, 直连, 拒绝]}
   # Test：手动测线路用 —— 测试域名规则集指到这里，可切不同出口验证某条线路通不通。
-  - {name: Test, type: select, proxies: [回国-自动, 所有-自动, 直连, 拒绝]}
+  - {name: Test, type: select, proxies: [回国-自动, 所有-自动, 所有-手动, 直连, 拒绝]}
   # 傻瓜式分流：每个启用的国内 App 一个独立 select 组（组名=APP 名），在 zashboard 里逐个切换出口。
   # <<INJECT_SPLIT_GROUPS>>
   # 自动测速选最快的回国节点。回国机场是专线，整个机场都是回国节点 → include-all 全收，不按「回国/电信」关键词筛
@@ -95,6 +95,8 @@ proxy-groups:
   - {name: 回国-自动, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cn.svg", type: url-test, include-all: true, tolerance: 50, interval: 300, url: "http://www.baidu.com", filter: "^((?!(直连|拒绝)).)*$"}
   # 备选：同样全收机场节点（排除 直连/拒绝），可手动从这里挑具体入口。
   - {name: 所有-自动, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/un.svg", type: url-test, include-all: true, tolerance: 50, interval: 300, url: "http://www.baidu.com", filter: "^((?!(直连|拒绝)).)*$"}
+  # 手动选节点：列出机场全部节点供逐个手选。找 B站番剧能用的大陆出口节点时用：把「回国」切到这里、挨个点节点试番剧，配合 Test 组看出口 IP 是不是大陆。
+  - {name: 所有-手动, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/un.svg", type: select, include-all: true, filter: "^((?!(直连|拒绝)).)*$"}
 
 # ========================
 # 规则引擎（国内 → 回国；其余 → 直连）

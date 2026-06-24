@@ -1,6 +1,6 @@
 [package]
 name = "claude-launcher"
-version = "1.1.7"
+version = "1.1.8"
 description = "Claude 一键启动器 — 配置生成 + 链路体检 + Claude 起停"
 authors = ["MAXs"]
 edition = "2021"

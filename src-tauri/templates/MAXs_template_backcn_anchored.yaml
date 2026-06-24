@@ -86,10 +86,13 @@ proxy-groups:
   - {name: 回国, type: select, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cn.svg", proxies: [回国-自动, 所有-自动, 直连, 拒绝]}
   # 傻瓜式分流：每个启用的国内 App 一个独立 select 组（组名=APP 名），在 zashboard 里逐个切换出口。
   # <<INJECT_SPLIT_GROUPS>>
-  # 自动测速选最快的中国出口节点。测速 URL 用百度：回国节点在中国境内连不上 Google 的 generate_204，会被误判成死节点。
-  - {name: 回国-自动, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cn.svg", type: url-test, include-all: true, tolerance: 50, interval: 300, url: "http://www.baidu.com", filter: "(?i)(回国|国内|大陆|IPLC|IEPL|cn2|back|home|china|电信|联通|移动|上海|北京|广州|深圳|杭州)", exclude-filter: "(?i)(香港|HK|台湾|TW|日本|JP|新加坡|SG|韩国|KR|美国|US|独立)"}
-  # 兜底：万一上面 filter 没匹配到回国节点（机场节点命名不含上述关键词），这里能选机场里所有节点。
-  - {name: 所有-自动, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/un.svg", type: url-test, include-all: true, tolerance: 50, interval: 300, url: "http://www.baidu.com"}
+  # 自动测速选最快的回国节点。回国机场是专线，整个机场都是回国节点 → include-all 全收，不按「回国/电信」关键词筛
+  # （回国机场常按「接入国家」命名，如「US 美国中转 / JP 日本中转」，落地都在中国；按关键词筛反而误杀这些节点）。
+  # filter 仅排除 直连/拒绝：include-all 会把 proxies 段的 直连/拒绝 也收进来，不排掉的话 url-test 会挑到延迟最低的「直连」（等于没走回国）。
+  # 测速 URL 用百度：回国节点在中国境内连不上 Google 的 generate_204，会被误判成死节点。
+  - {name: 回国-自动, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cn.svg", type: url-test, include-all: true, tolerance: 50, interval: 300, url: "http://www.baidu.com", filter: "^((?!(直连|拒绝)).)*$"}
+  # 备选：同样全收机场节点（排除 直连/拒绝），可手动从这里挑具体入口。
+  - {name: 所有-自动, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/un.svg", type: url-test, include-all: true, tolerance: 50, interval: 300, url: "http://www.baidu.com", filter: "^((?!(直连|拒绝)).)*$"}
 
 # ========================
 # 规则引擎（国内 → 回国；其余 → 直连）

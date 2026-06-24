@@ -1544,6 +1544,10 @@ mod tests {
         assert!(y.contains("- RULE-SET,China / Domain,回国"));
         assert!(y.contains("- RULE-SET,China / IP,回国,no-resolve"));
         assert!(y.contains("- MATCH,直连"));
+        // 回国-自动 不再按「回国/电信」关键词筛、也无 exclude-filter（否则会误杀以接入国家命名的回国节点，
+        // 如「US 美国中转」）。只 include-all 全收、排除 直连/拒绝。
+        assert!(!y.contains("exclude-filter"), "纯回国回国-自动不应带 exclude-filter（会误杀以接入国家命名的回国节点）");
+        assert!(y.contains("name: 回国-自动,") && y.contains("filter: \"^((?!(直连|拒绝)).)*$\""));
         serde_yaml::from_str::<serde_yaml::Value>(&y).expect("纯回国注入后应为合法 yaml");
     }
 }

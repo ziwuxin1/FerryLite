@@ -344,6 +344,9 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
   const appControls: { key: string; name: string; on: HTMLInputElement; relay: HTMLInputElement }[] = [];
   // 各分类「全选」框的刷新器：全局全选/反选后调用，让分类框跟随。
   const catAllUpdaters: (() => void)[] = [];
+  // 各分类下拉 body / 箭头引用：纯回国模式要程序化展开「回国」分类。
+  const splitBodies: HTMLElement[] = [];
+  const splitArrows: HTMLElement[] = [];
   const splitSections = APP_CATALOG.map((c) => {
     const inner = el("div", { class: "acc-inner" });
     const catOns: HTMLInputElement[] = [];
@@ -397,6 +400,8 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       },
       [catAll, arrow, c.cat],
     );
+    splitBodies.push(body);
+    splitArrows.push(arrow);
     return el("div", {}, [header, body]);
   });
   const selectAll = el(
@@ -554,6 +559,15 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
     splitSections.forEach((sec, i) => {
       (sec as HTMLElement).style.display = pure && i !== backCatIndex ? "none" : "";
     });
+    // 开启纯回国 → 自动勾上「回国」分类全部 App 并展开该分类，省去逐个手勾。
+    if (pure && backCatIndex >= 0) {
+      for (const c of appControls) {
+        if (backCnKeys.has(c.key)) c.on.checked = true;
+      }
+      catAllUpdaters[backCatIndex]?.();
+      splitBodies[backCatIndex]?.classList.add("open");
+      splitArrows[backCatIndex]?.classList.add("acc-arrow--open");
+    }
   };
 
   const view = el("div", {}, [

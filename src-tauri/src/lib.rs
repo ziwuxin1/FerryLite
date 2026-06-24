@@ -32,6 +32,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
         .setup(|app| {
+            // 窗口标题带版本号（编译期 CARGO_PKG_VERSION，自动跟随版本，无需手改）。
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_title(&format!("Ferry · 链式代理 v{}", env!("CARGO_PKG_VERSION")));
+            }
             // 系统托盘：关闭窗口后缩到这里，从托盘恢复 / 退出。
             let show_i = MenuItem::with_id(app, "show", "显示窗口", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;

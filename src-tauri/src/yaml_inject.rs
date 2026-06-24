@@ -520,6 +520,54 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
                     rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
                 }
             }
+            // 回国分流（国外访问国内 · 走回国节点）：国内 App 域名先命中 → 回国组，不被 China→国内→直连 抢走。
+            "netease" => {
+                for d in ["music.163.com", "126.net"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "qqmusic" => {
+                for d in ["y.qq.com", "music.qq.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "bilibili" => {
+                for d in ["bilibili.com", "hdslb.com", "biliapi.net", "bilivideo.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "iqiyi" => {
+                for d in ["iqiyi.com", "iqiyipic.com", "qy.net"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "youku" => {
+                for d in ["youku.com", "ykimg.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "qqvideo" => rules.push(format!("- DOMAIN-SUFFIX,v.qq.com,{t}")),
+            "mgtv" => {
+                for d in ["mgtv.com", "hitv.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "migu" => {
+                for d in ["migu.cn", "miguvideo.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "ximalaya" => {
+                for d in ["ximalaya.com", "xmcdn.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "douyin" => {
+                for d in ["douyin.com", "douyinpic.com", "amemv.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "weread" => rules.push(format!("- DOMAIN-SUFFIX,weread.qq.com,{t}")),
             _ => {}
         }
     }
@@ -661,6 +709,18 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("playstation", "playstation.com"),
     ("nintendo", "nintendo.com"),
     ("riot", "riotgames.com"),
+    // 回国（国外访问国内）
+    ("netease", "music.163.com"),
+    ("qqmusic", "y.qq.com"),
+    ("bilibili", "bilibili.com"),
+    ("iqiyi", "iqiyi.com"),
+    ("youku", "youku.com"),
+    ("qqvideo", "v.qq.com"),
+    ("mgtv", "mgtv.com"),
+    ("migu", "migu.cn"),
+    ("ximalaya", "ximalaya.com"),
+    ("douyin", "douyin.com"),
+    ("weread", "weread.qq.com"),
 ];
 
 fn icon_domain(key: &str) -> Option<&'static str> {
@@ -668,9 +728,15 @@ fn icon_domain(key: &str) -> Option<&'static str> {
 }
 
 /// 每个 APP 的默认出口（select 组首位=zashboard 导入后默认选中的节点）。固定映射（用户指定）：
-/// 直连=Apple/Microsoft；台湾-自动=离岸加密交易所；香港-自动=流媒体/社媒/开发者/设计/游戏/Google/Perforce；
+/// 直连=Apple/Microsoft；回国-自动=国内 App（网易云/B站/爱奇艺…，国外访问国内）；台湾-自动=离岸加密交易所；
+/// 香港-自动=流媒体/社媒/开发者/设计/游戏/Google/Perforce；
 /// 其余（AI/券商/银行/房贷/保险/购物/政府/美国加密/TikTok/Unity）=美国独立IP（无独立IP时退回美国-自动）。
 fn default_exit(key: &str, has_indep: bool) -> &'static str {
+    // 回国方向：国外访问国内 App，默认走回国机场的中国出口节点。
+    const BACK: &[&str] = &[
+        "netease", "qqmusic", "bilibili", "iqiyi", "youku", "qqvideo", "mgtv", "migu",
+        "ximalaya", "douyin", "weread",
+    ];
     const HK: &[&str] = &[
         "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma",
         "telegram", "twitter", "whatsapp", "facebook", "github", "gitlab",
@@ -684,6 +750,8 @@ fn default_exit(key: &str, has_indep: bool) -> &'static str {
     const DIRECT: &[&str] = &["apple", "microsoft"];
     if DIRECT.contains(&key) {
         "直连"
+    } else if BACK.contains(&key) {
+        "回国-自动"
     } else if TW.contains(&key) {
         "台湾-自动"
     } else if HK.contains(&key) {
@@ -702,12 +770,12 @@ fn build_split_groups(apps: &[SplitApp], has_indep: bool) -> String {
     let menu: &[&str] = if has_indep {
         &[
             "美国独立IP", "美国-自动", "香港-自动", "台湾-自动", "日本-自动", "新加坡-自动",
-            "韩国-自动", "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
+            "韩国-自动", "回国-自动", "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
         ]
     } else {
         &[
             "美国-自动", "香港-自动", "台湾-自动", "日本-自动", "新加坡-自动", "韩国-自动",
-            "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
+            "回国-自动", "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
         ]
     };
     let mut groups: Vec<String> = Vec::new();
@@ -1303,5 +1371,27 @@ mod tests {
         let y = inject(&s).unwrap();
         assert!(y.contains("name: \"Figma\", type: select, icon: \"https://www.google.com/s2/favicons?domain=figma.com&sz=64\", proxies: [香港-自动,"));
         assert!(y.contains("- DOMAIN-SUFFIX,figma.com,Figma"));
+    }
+
+    #[test]
+    fn back_china_split_routes_to_back_group() {
+        // 回国分流：国内 App 默认出口=回国-自动；规则用 DOMAIN-SUFFIX 指向该 APP 自己的组。
+        let mut s = sample();
+        s.split_apps = vec![
+            SplitApp { key: "bilibili".into(), name: "哔哩哔哩".into(), relay: false },
+            SplitApp { key: "netease".into(), name: "网易云音乐".into(), relay: false },
+        ];
+        let y = inject(&s).unwrap();
+        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://www.google.com/s2/favicons?domain=bilibili.com&sz=64\", proxies: [回国-自动,"));
+        assert!(y.contains("- DOMAIN-SUFFIX,bilibili.com,哔哩哔哩"));
+        assert!(y.contains("name: \"网易云音乐\", type: select, icon: \"https://www.google.com/s2/favicons?domain=music.163.com&sz=64\", proxies: [回国-自动,"));
+        assert!(y.contains("- DOMAIN-SUFFIX,music.163.com,网易云音乐"));
+        // 模板含回国-自动地区组（include-all 聚回国机场节点）。
+        assert!(y.contains("name: 回国-自动,"));
+        // bilibili 域名规则必须排在 China 兜底之前，否则被 China→国内→直连 抢走。
+        let pos_bili = y.find("DOMAIN-SUFFIX,bilibili.com,哔哩哔哩").unwrap();
+        let pos_china = y.find("RULE-SET,China / Domain,国内").unwrap();
+        assert!(pos_bili < pos_china, "国内 App 规则应排在 China 兜底之前");
+        serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
     }
 }

@@ -303,6 +303,22 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         { key: "riot", label: "Riot 拳头", on: true, relay: false },
       ],
     },
+    {
+      cat: "回国（国外访问国内 · 走回国节点）",
+      apps: [
+        { key: "netease", label: "网易云音乐", on: true, relay: false },
+        { key: "qqmusic", label: "QQ音乐", on: true, relay: false },
+        { key: "bilibili", label: "哔哩哔哩", on: true, relay: false },
+        { key: "iqiyi", label: "爱奇艺", on: true, relay: false },
+        { key: "youku", label: "优酷", on: true, relay: false },
+        { key: "qqvideo", label: "腾讯视频", on: true, relay: false },
+        { key: "mgtv", label: "芒果TV", on: true, relay: false },
+        { key: "migu", label: "咪咕视频", on: true, relay: false },
+        { key: "ximalaya", label: "喜马拉雅", on: true, relay: false },
+        { key: "douyin", label: "抖音", on: true, relay: false },
+        { key: "weread", label: "微信读书", on: true, relay: false },
+      ],
+    },
   ];
   const appControls: { key: string; name: string; on: HTMLInputElement; relay: HTMLInputElement }[] = [];
   // 各分类「全选」框的刷新器：全局全选/反选后调用，让分类框跟随。

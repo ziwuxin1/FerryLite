@@ -83,6 +83,14 @@ pub struct GenerateInput {
     /// 为 true 时用 TEMPLATE_BACKCN，且只处理回国类 App（其余 App / 独立IP 忽略）。
     #[serde(default)]
     pub back_cn_only: bool,
+    /// DNS 覆写开关（默认开）：true=dns.enable: true（fake-ip 接管 DNS）；
+    /// false=dns.enable: false（机场公告要求关闭 DNS 覆写时用，解析交回系统/上游）。
+    #[serde(default = "default_dns_override")]
+    pub dns_override: bool,
+}
+
+fn default_dns_override() -> bool {
+    true
 }
 
 /// 分流的单个 APP 选择。key=APP 标识；name=该 APP 的策略组名（zashboard 里显示，用户逐个切换出口）；
@@ -181,8 +189,67 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
         yaml = strip_independent_refs(&yaml);
     }
 
+    // DNS 覆写关闭（机场调线路后公告要求）：dns.enable → false，mihomo 不再接管 DNS
+    // （fake-ip 失效，域名解析交回系统/上游）。默认保持 true 不动。
+    if !input.dns_override {
+        yaml = set_dns_enable(&yaml, false)?;
+    }
+
     post_validate(&yaml)?;
     Ok(yaml)
+}
+
+/// 顶级键行判定：非缩进、非注释、非空 → 一个新顶级段开始。
+/// （dns 段内部有列首注释 `# 快猫` 与空行，须跳过而不视为段结束。）
+fn is_top_level_key(text: &str) -> bool {
+    !text.is_empty() && !text.starts_with(' ') && !text.starts_with('\t') && !text.starts_with('#')
+}
+
+/// 在顶级 `dns:` 段内定位 `enable:` 行，返回行下标（基于 split_inclusive('\n') 的行序）。
+fn find_dns_enable_index(lines: &[&str]) -> Option<usize> {
+    let mut in_dns = false;
+    for (i, raw) in lines.iter().enumerate() {
+        let text = raw.trim_end_matches(['\r', '\n']);
+        if is_top_level_key(text) {
+            in_dns = text == "dns:";
+            continue;
+        }
+        if in_dns && text.trim_start().starts_with("enable:") {
+            return Some(i);
+        }
+    }
+    None
+}
+
+/// DNS 覆写开关：把顶级 dns 段的 `enable:` 行改成目标值。
+/// 与本模块纪律一致：纯文本行替换，绝不 load→dump（保注释与 YAML 锚点）。
+pub fn set_dns_enable(yaml: &str, enable: bool) -> Result<String, String> {
+    let lines: Vec<&str> = yaml.split_inclusive('\n').collect();
+    let idx = find_dns_enable_index(&lines)
+        .ok_or_else(|| "未找到 dns 段的 enable 行（此 yaml 可能不是本工具生成的）".to_string())?;
+    let text = lines[idx].trim_end_matches(['\r', '\n']);
+    let ending = &lines[idx][text.len()..];
+    let indent = &text[..text.len() - text.trim_start().len()];
+    let mut out = String::with_capacity(yaml.len() + 1);
+    for (i, line) in lines.iter().enumerate() {
+        if i == idx {
+            out.push_str(indent);
+            out.push_str(if enable { "enable: true" } else { "enable: false" });
+            out.push_str(ending);
+        } else {
+            out.push_str(line);
+        }
+    }
+    Ok(out)
+}
+
+/// 读取 yaml 的 DNS 覆写状态：顶级 dns 段 enable 的值（无 dns 段/无 enable 行视为关）。
+pub fn parse_dns_override(yaml: &str) -> bool {
+    let lines: Vec<&str> = yaml.split_inclusive('\n').collect();
+    match find_dns_enable_index(&lines) {
+        Some(i) => lines[i].contains("true"),
+        None => false,
+    }
 }
 
 fn build_provider_block(airport: &Airport) -> String {
@@ -1174,7 +1241,50 @@ mod tests {
             }],
             split_apps: vec![],
             back_cn_only: false,
+            dns_override: true,
         }
+    }
+
+    #[test]
+    fn dns_override_on_keeps_dns_enabled() {
+        let y = inject(&sample()).unwrap();
+        assert!(parse_dns_override(&y), "默认应保持 DNS 覆写开启（dns.enable: true）");
+    }
+
+    #[test]
+    fn dns_override_off_disables_dns_section() {
+        let mut s = sample();
+        s.dns_override = false;
+        let y = inject(&s).unwrap();
+        assert!(!parse_dns_override(&y), "关闭覆写后 dns.enable 应为 false");
+        assert!(y.contains("dns:\n  enable: false"), "应只改 dns 段的 enable 行");
+        // 其余 enable（proxy-provider health-check / tun）不受影响。
+        assert!(y.contains("tun:\n  enable: true"), "tun 段的 enable 不能被误改");
+    }
+
+    #[test]
+    fn dns_override_off_works_in_backcn_mode() {
+        let mut s = sample();
+        s.back_cn_only = true;
+        s.independent_nodes = vec![];
+        s.dns_override = false;
+        let y = inject(&s).unwrap();
+        assert!(!parse_dns_override(&y), "纯回国模板同样支持关闭 DNS 覆写");
+    }
+
+    #[test]
+    fn set_dns_enable_round_trip() {
+        let y = inject(&sample()).unwrap();
+        let off = set_dns_enable(&y, false).unwrap();
+        assert!(!parse_dns_override(&off));
+        let on = set_dns_enable(&off, true).unwrap();
+        assert!(parse_dns_override(&on));
+        assert_eq!(y, on, "开→关→开 应完整还原（只动 enable 一行）");
+    }
+
+    #[test]
+    fn set_dns_enable_rejects_yaml_without_dns() {
+        assert!(set_dns_enable("port: 7890\nmode: rule\n", false).is_err());
     }
 
     #[test]

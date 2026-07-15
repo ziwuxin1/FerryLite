@@ -16,6 +16,10 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
   // 纯回国模式开关：人在国外，国内→回国节点、其余→直连，去掉翻墙地区组（导出 yaml 给 OpenClash 用）。
   const pureBackCn = el("input", { type: "checkbox" }) as HTMLInputElement;
 
+  // DNS 覆写开关（默认开）：机场公告要求「关闭 DNS 覆写」时取消勾选 → 生成的 dns.enable: false。
+  const dnsOverride = el("input", { type: "checkbox" }) as HTMLInputElement;
+  dnsOverride.checked = true;
+
   // ---- 机场（可多个）----
   const airportRows: AirportRow[] = [];
   const airportList = el("div", {});
@@ -497,6 +501,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         .filter((c) => c.on.checked && (!pure || backCnKeys.has(c.key)))
         .map((c) => ({ key: c.key, relay: c.relay.checked, name: c.name })),
       backCnOnly: pure,
+      dnsOverride: dnsOverride.checked,
     };
     try {
       const result = await api.generateConfig(payload);
@@ -553,6 +558,17 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       "打开后：把「回国机场订阅」当普通机场添加，生成的配置 国内（含所选 App）→ 回国节点、其余 → 直连，并去掉所有翻墙地区组（香港/美国/独立IP…）。导出的 yaml 可直接给 OpenClash / ClashMi 用。下方「回国」分类按需勾选；不勾也会整体走回国。",
     ]),
   ]);
+  // DNS 覆写卡片：默认开（fake-ip 接管 DNS）；机场线路调整公告要求关闭时取消勾选。
+  const dnsCard = el("div", { class: "card" }, [
+    el("label", { class: "checkbox-row" }, [
+      dnsOverride,
+      el("span", { style: "font-weight:700" }, ["DNS 覆写（默认开 · fake-ip 接管 DNS）"]),
+    ]),
+    el("div", { class: "field-hint" }, [
+      "机场公告要求「关闭 DNS 覆写」时取消勾选：生成的配置 dns.enable 改为 false，域名解析交回系统/上游，避免线路调整后 DNS 缓存导致无法使用。已有配置不想重新生成？回状态盘用「DNS 覆写」卡一键切换即可。",
+    ]),
+  ]);
+
   pureBackCn.onchange = (): void => {
     const pure = pureBackCn.checked;
     indepCard.style.display = pure ? "none" : "";
@@ -579,6 +595,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       el("button", { class: "btn", onclick: onDone }, ["← 返回状态盘"]),
     ]),
     pureCard,
+    dnsCard,
     el("div", { class: "card" }, [
       el("h2", {}, ["机场订阅（可多个）"]),
       airportList,

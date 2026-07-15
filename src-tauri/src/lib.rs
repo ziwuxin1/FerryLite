@@ -80,6 +80,7 @@ pub fn run() {
             commands::read_app_config,
             commands::import_yaml,
             commands::clear_config,
+            commands::set_dns_override,
             commands::set_exit_basis,
             commands::check_clash,
             commands::verify_exit_ip,

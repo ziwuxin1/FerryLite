@@ -27,6 +27,8 @@ export interface GenerateInput {
   splitApps: { key: string; relay: boolean; name: string }[];
   /** 纯回国模式：国内→回国节点、其余→直连，去掉翻墙地区组（给 OpenClash 用）。 */
   backCnOnly?: boolean;
+  /** DNS 覆写开关（默认 true）：false=生成的 dns.enable: false（机场公告要求关闭时用）。 */
+  dnsOverride?: boolean;
 }
 
 export interface GenerateResult {
@@ -78,6 +80,8 @@ export interface AppConfig {
   claudeCodeCommand: string;
   claudeDesktopProcess: string;
   claudeDesktopPath?: string | null;
+  /** DNS 覆写状态（成品 yaml 里 dns.enable 的值）。 */
+  dnsOverride: boolean;
   lastUpdated: string;
 }
 
@@ -111,6 +115,7 @@ export const api = {
   importYaml: (path: string, lastUpdated: string) =>
     invoke<AppConfig>("import_yaml", { path, lastUpdated }),
   clearConfig: () => invoke<void>("clear_config"),
+  setDnsOverride: (enable: boolean) => invoke<AppConfig>("set_dns_override", { enable }),
   setExitBasis: (ip: string) => invoke<AppConfig>("set_exit_basis", { ip }),
   checkClash: () => invoke<string>("check_clash"),
   verifyExitIp: () => invoke<ExitIpReport>("verify_exit_ip"),

@@ -96,6 +96,7 @@ pub fn save_generated(app: tauri::AppHandle, input: SaveInput) -> Result<AppConf
         claude_code_command,
         claude_desktop_process,
         claude_desktop_path,
+        dns_override: yaml_inject::parse_dns_override(&input.yaml),
         last_updated: input.last_updated,
     };
     config::write_config(&app, &cfg)?;
@@ -159,6 +160,7 @@ pub fn import_yaml(
         claude_code_command,
         claude_desktop_process,
         claude_desktop_path,
+        dns_override: yaml_inject::parse_dns_override(&yaml),
         last_updated,
     };
     config::write_config(&app, &cfg)?;
@@ -173,6 +175,22 @@ pub fn clear_config(app: tauri::AppHandle) -> Result<(), String> {
         std::fs::remove_file(&path).map_err(|e| format!("清除配置失败：{e}"))?;
     }
     Ok(())
+}
+
+/// DNS 覆写开关：直接改成品 yaml 里 dns 段的 enable 并回写（免重新生成整份配置）。
+/// 机场公告场景：线路调整后要求「关闭 DNS 覆写 + 重新导入订阅」；切完需把 yaml 重新拖进 ClashMi。
+#[tauri::command]
+pub fn set_dns_override(app: tauri::AppHandle, enable: bool) -> Result<AppConfig, String> {
+    let mut cfg = require_config(&app)?;
+    let path = cfg.generated_yaml_path.clone();
+    let yaml =
+        std::fs::read_to_string(&path).map_err(|e| format!("读取成品 yaml 失败（{path}）：{e}"))?;
+    let patched = yaml_inject::set_dns_enable(&yaml, enable)?;
+    std::fs::write(&path, patched.as_bytes())
+        .map_err(|e| format!("写入 yaml 失败（{path}）：{e}"))?;
+    cfg.dns_override = enable;
+    config::write_config(&app, &cfg)?;
+    Ok(cfg)
 }
 
 /// 把「实际出口IP」设为校验基准：住宅代理常「入口网关域名 ≠ 真实出口IP」，

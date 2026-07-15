@@ -66,6 +66,15 @@ export function renderDashboardView(
   const shutdownBtn = el("button", { class: "btn danger block", onclick: onShutdown }, [
     "一键安全关闭",
   ]) as HTMLButtonElement;
+  // DNS 覆写一键切换：直接改成品 yaml 的 dns.enable（免重新生成），机场公告要求关闭时用。
+  const dnsInfo = el("div", { class: "link-info" }, [
+    config
+      ? `当前状态：${config.dnsOverride ? "开（fake-ip 接管 DNS）" : "关（dns.enable: false）"}`
+      : "尚未配置。",
+  ]);
+  const dnsToggleBtn = el("button", { class: "btn block", onclick: onToggleDns }, [
+    config?.dnsOverride ? "关闭 DNS 覆写" : "打开 DNS 覆写",
+  ]) as HTMLButtonElement;
   // 出口IP校准：第2步失败但回显是有效公网IP时显示，一键把"检测到的出口IP"设为基准
   // （住宅代理"入口网关域名≠真实出口IP"的常见情况，省去重新生成/重填表单）。
   let lastEcho = "";
@@ -81,6 +90,7 @@ export function renderDashboardView(
     proxyBtn.disabled = true;
     retestBtn.disabled = true;
     shutdownBtn.disabled = true;
+    dnsToggleBtn.disabled = true;
   }
 
   function launchBtn(label: string, handler: () => void): HTMLButtonElement {
@@ -195,6 +205,24 @@ export function renderDashboardView(
       toast(String(e), "err");
     }
   }
+  // DNS 覆写切换：改成品 yaml 的 dns.enable 并回写 config.json；改完需重新拖进 ClashMi。
+  async function onToggleDns(): Promise<void> {
+    if (!config) return;
+    const target = !config.dnsOverride;
+    dnsToggleBtn.disabled = true;
+    try {
+      await api.setDnsOverride(target);
+      toast(
+        `✅ DNS 覆写已${target ? "打开" : "关闭"}，请把成品 yaml 重新拖进 ClashMi 生效`,
+        "ok",
+      );
+      onReload();
+    } catch (e) {
+      toast(String(e), "err");
+      dnsToggleBtn.disabled = false;
+    }
+  }
+
   function onShutdown(): void {
     if (!config) return;
     openShutdownDialog(async () => {
@@ -256,6 +284,8 @@ export function renderDashboardView(
             el("span", {}, [config.clashApi.url]),
             el("b", {}, ["成品 yaml"]),
             el("span", {}, [config.generatedYamlPath]),
+            el("b", {}, ["DNS 覆写"]),
+            el("span", {}, [config.dnsOverride ? "开（fake-ip）" : "关（dns.enable: false）"]),
             el("b", {}, ["更新时间"]),
             el("span", {}, [formatTime(config.lastUpdated)]),
           ]),
@@ -332,6 +362,14 @@ export function renderDashboardView(
         el("h2", {}, ["独立 IP 链路 / IP 纯净度"]),
         linkInfo,
         el("div", { class: "btn-row" }, [retestBtn, ping0Btn]),
+      ]),
+      el("div", { class: "card" }, [
+        el("h2", {}, ["DNS 覆写"]),
+        dnsInfo,
+        dnsToggleBtn,
+        el("div", { class: "hint" }, [
+          "机场公告要求「关闭 DNS 覆写」时点一下即可：直接改成品 yaml 里的 dns.enable，不用重新生成；改完把 yaml 重新拖进 ClashMi 重新导入才生效。",
+        ]),
       ]),
       el("div", { class: "card" }, [
         el("h2", {}, ["关闭"]),

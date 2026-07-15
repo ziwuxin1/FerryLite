@@ -64,7 +64,14 @@ pub struct AppConfig {
     /// 可选：Claude 桌面 App 的 exe 绝对路径（自动探测失败时手动指定）。
     #[serde(default)]
     pub claude_desktop_path: Option<String>,
+    /// DNS 覆写状态（成品 yaml 里 dns.enable 的值）。机场公告要求关闭时可在状态盘一键切换。
+    #[serde(default = "default_dns_override")]
+    pub dns_override: bool,
     pub last_updated: String,
+}
+
+fn default_dns_override() -> bool {
+    true
 }
 
 fn default_claude_code_command() -> String {

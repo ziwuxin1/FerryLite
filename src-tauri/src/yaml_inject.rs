@@ -1257,9 +1257,11 @@ mod tests {
         s.dns_override = false;
         let y = inject(&s).unwrap();
         assert!(!parse_dns_override(&y), "关闭覆写后 dns.enable 应为 false");
-        assert!(y.contains("dns:\n  enable: false"), "应只改 dns 段的 enable 行");
+        // CI 的 Windows runner autocrlf 会把模板 checkout 成 CRLF：断言前归一化行结尾。
+        let n = y.replace("\r\n", "\n");
+        assert!(n.contains("dns:\n  enable: false"), "应只改 dns 段的 enable 行");
         // 其余 enable（proxy-provider health-check / tun）不受影响。
-        assert!(y.contains("tun:\n  enable: true"), "tun 段的 enable 不能被误改");
+        assert!(n.contains("tun:\n  enable: true"), "tun 段的 enable 不能被误改");
     }
 
     #[test]

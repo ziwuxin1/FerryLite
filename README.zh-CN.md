@@ -63,4 +63,4 @@ npm run tauri build   # → src-tauri/target/release/（便携 exe + NSIS 安装
 
 ## 📄 许可
 
-[MIT](LICENSE) © MAXs
+[MIT](LICENSE) © ziwuxin1

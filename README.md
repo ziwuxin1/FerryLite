@@ -63,4 +63,4 @@ A single Tauri `.exe` (Rust backend + vanilla TypeScript frontend):
 
 ## 📄 License
 
-[MIT](LICENSE) © MAXs
+[MIT](LICENSE) © ziwuxin1

@@ -2,7 +2,7 @@
 name = "claude-launcher"
 version = "1.2.6"
 description = "Claude 一键启动器 — 配置生成 + 链路体检 + Claude 起停"
-authors = ["MAXs"]
+authors = ["ziwuxin1"]
 edition = "2021"
 rust-version = "1.77.2"
 

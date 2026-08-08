@@ -44,7 +44,7 @@ export function renderDashboardView(
   onEditConfig: () => void,
   onReload: () => void,
 ): void {
-  const stepClash = makeStep("1. 检查 ClashMi（Clash API 可达）");
+  const stepClash = makeStep("1. 检查 Clash 客户端（Clash API 可达）");
   const stepIp = makeStep("2. 验证出口 IP == 基准 IP（安全兜底）");
   const stepLink = makeStep("3. 独立 IP 链路体检（延迟 / 稳定性）");
 
@@ -213,7 +213,7 @@ export function renderDashboardView(
     try {
       await api.setDnsOverride(target);
       toast(
-        `✅ DNS 覆写已${target ? "打开" : "关闭"}，请把成品 yaml 重新拖进 ClashMi 生效`,
+        `✅ DNS 覆写已${target ? "打开" : "关闭"}，请把成品 yaml 重新导入你的 Clash 客户端生效`,
         "ok",
       );
       onReload();
@@ -368,14 +368,14 @@ export function renderDashboardView(
         dnsInfo,
         dnsToggleBtn,
         el("div", { class: "hint" }, [
-          "机场公告要求「关闭 DNS 覆写」时点一下即可：直接改成品 yaml 里的 dns.enable，不用重新生成；改完把 yaml 重新拖进 ClashMi 重新导入才生效。",
+          "机场公告要求「关闭 DNS 覆写」时点一下即可：直接改成品 yaml 里的 dns.enable，不用重新生成；改完把 yaml 重新导入你的 Clash 客户端才生效。",
         ]),
       ]),
       el("div", { class: "card" }, [
         el("h2", {}, ["关闭"]),
         shutdownBtn,
         el("div", { class: "hint" }, [
-          "只结束 Claude Code / 桌面 App 进程；不动浏览器、不动 ClashMi / TUN。",
+          "只结束 Claude Code / 桌面 App 进程；不动浏览器、不动 Clash 客户端 / TUN。",
         ]),
       ]),
     ]),

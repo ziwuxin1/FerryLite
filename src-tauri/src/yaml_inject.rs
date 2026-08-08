@@ -140,7 +140,7 @@ pub fn generate(input: &GenerateInput) -> Result<GenerateResult, String> {
         clash_api_url,
         clash_secret,
         exit_basis_ip,
-        suggested_file_name: "claude-clash.yaml".to_string(),
+        suggested_file_name: "Ferry.yaml".to_string(),
     })
 }
 

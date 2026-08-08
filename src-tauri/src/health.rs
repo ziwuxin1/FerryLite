@@ -73,17 +73,17 @@ pub async fn check_clash(clash_url: &str, secret: &str) -> Result<String, String
         req = req.bearer_auth(secret);
     }
     match req.send().await {
-        // 任何 HTTP 响应（含 401）都证明 ClashMi 控制器在线。secret 由 ClashMi 随机管理、
+        // 任何 HTTP 响应（含 401）都证明 Clash 客户端控制器在线。secret 可能由客户端随机管理、
         // 无法获取，这里不卡鉴权；核心体检走代理端口，不需要 secret。
         Ok(resp) => {
             if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
-                Ok("ClashMi 已就位（API 在线；secret 由 ClashMi 随机管理，已自动跳过鉴权）。".into())
+                Ok("Clash 客户端已就位（API 在线；secret 由客户端随机管理，已自动跳过鉴权）。".into())
             } else {
-                Ok("ClashMi 已就位（Clash API 可达）。".into())
+                Ok("Clash 客户端已就位（Clash API 可达）。".into())
             }
         }
         Err(_) => {
-            Err("未检测到 ClashMi：Clash API 无法连接。请先打开 ClashMi 并连接。".into())
+            Err("未检测到 Clash 客户端：Clash API 无法连接。请先打开你的 Clash 客户端（ClashMi / Clash Verge / FlClash 等）并连接。".into())
         }
     }
 }
@@ -126,7 +126,7 @@ pub async fn verify_exit_ip(
         Some(v) => v,
         None => {
             return Err(
-                "无法检测出口 IP（试过常见代理端口都连不上）。请确认 ClashMi 已连接、TUN 已开。本次不放行。"
+                "无法检测出口 IP（试过常见代理端口都连不上）。请确认 Clash 客户端已连接、TUN 已开。本次不放行。"
                     .into(),
             )
         }

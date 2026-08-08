@@ -532,7 +532,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         lastUpdated: new Date().toISOString(),
       });
       setStatus(
-        `✅ 已保存到：${cfg.generatedYamlPath}\n请把它拖进 ClashMi，再回主页点「一键代理」。`,
+        `✅ 已保存到：${cfg.generatedYamlPath}\n请把它导入你的 Clash 客户端，再回主页点「一键代理」。`,
         "ok",
       );
       window.setTimeout(onDone, 1600);
@@ -562,7 +562,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       el("span", { style: "font-weight:700" }, ["纯回国模式（人在国外 · 国内走回国节点 · 其余直连）"]),
     ]),
     el("div", { class: "field-hint" }, [
-      "打开后：把「回国机场订阅」当普通机场添加，生成的配置 国内（含所选 App）→ 回国节点、其余 → 直连，并去掉所有翻墙地区组（香港/美国/独立IP…）。导出的 yaml 可直接给 OpenClash / ClashMi 用。下方「回国」分类按需勾选；不勾也会整体走回国。",
+      "打开后：把「回国机场订阅」当普通机场添加，生成的配置 国内（含所选 App）→ 回国节点、其余 → 直连，并去掉所有翻墙地区组（香港/美国/独立IP…）。导出的 yaml 可直接给任意 Clash 客户端（OpenClash 等）用。下方「回国」分类按需勾选；不勾也会整体走回国。",
     ]),
   ]);
   // DNS 覆写卡片：默认开（fake-ip 接管 DNS）；机场线路调整公告要求关闭时取消勾选。
@@ -597,7 +597,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
     el("div", { class: "topbar" }, [
       el("div", {}, [
         el("h1", {}, ["配置生成"]),
-        el("div", { class: "sub" }, ["首次使用 / 换 IP 时填写；生成成品 yaml 后拖进 ClashMi。"]),
+        el("div", { class: "sub" }, ["首次使用 / 换 IP 时填写；生成成品 yaml 后导入你的 Clash 客户端。"]),
       ]),
       el("button", { class: "btn", onclick: onDone }, ["← 返回状态盘"]),
     ]),

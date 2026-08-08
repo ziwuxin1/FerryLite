@@ -337,12 +337,58 @@ fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
         }
         let t = app.name.as_str(); // 目标 = 该 APP 自己的策略组（组名即 app.name）
         match key {
-            "chatgpt" => rules.push(format!("- RULE-SET,ChatGPT / Domain,{t}")),
-            "gemini" => rules.push(format!("- RULE-SET,Gemini / Domain,{t}")),
-            "perplexity" => rules.push(format!("- RULE-SET,Perplexity / Domain,{t}")),
-            "metaai" => rules.push(format!("- RULE-SET,Meta AI / Domain,{t}")),
-            "copilot" => rules.push(format!("- RULE-SET,Copilot / Domain,{t}")),
+            // 核心 AI 服务：RULE-SET（外部维护）+ 内联域名兜底（规则集源失效时分流不静默丢失）。
+            "chatgpt" => {
+                rules.push(format!("- RULE-SET,ChatGPT / Domain,{t}"));
+                // sora.com 为 Sora 独立域名，外部规则集未必收录，内联补上。
+                for d in ["openai.com", "chatgpt.com", "oaistatic.com", "sora.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "gemini" => {
+                rules.push(format!("- RULE-SET,Gemini / Domain,{t}"));
+                rules.push(format!("- DOMAIN-SUFFIX,gemini.google.com,{t}"));
+            }
+            "perplexity" => {
+                rules.push(format!("- RULE-SET,Perplexity / Domain,{t}"));
+                rules.push(format!("- DOMAIN-SUFFIX,perplexity.ai,{t}"));
+            }
+            "metaai" => {
+                rules.push(format!("- RULE-SET,Meta AI / Domain,{t}"));
+                rules.push(format!("- DOMAIN-SUFFIX,meta.ai,{t}"));
+            }
+            "copilot" => {
+                rules.push(format!("- RULE-SET,Copilot / Domain,{t}"));
+                rules.push(format!("- DOMAIN-SUFFIX,copilot.microsoft.com,{t}"));
+            }
             "tapnow" => rules.push(format!("- DOMAIN-SUFFIX,tapnow.ai,{t}")),
+            "midjourney" => rules.push(format!("- DOMAIN-SUFFIX,midjourney.com,{t}")),
+            "grok" => {
+                for d in ["grok.com", "x.ai"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "cursor" => {
+                for d in ["cursor.com", "cursor.sh"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "instagram" => {
+                for d in ["instagram.com", "cdninstagram.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "discord" => {
+                // discord.media 是语音服务域名，缺了会「能聊天不能语音」。
+                for d in ["discord.com", "discordapp.com", "discord.gg", "discordapp.net", "discord.media"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
+            "reddit" => {
+                for d in ["reddit.com", "redd.it", "redditstatic.com", "redditmedia.com"] {
+                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
+                }
+            }
             "youtube" => rules.push(format!("- RULE-SET,Youtube / Domain,{t}")),
             "netflix" => {
                 rules.push(format!("- RULE-SET,Netflix / Domain,{t}"));
@@ -351,7 +397,14 @@ fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
             "disney" => rules.push(format!("- RULE-SET,Disney / Domain,{t}")),
             "hbo" => rules.push(format!("- RULE-SET,HBO / Domain,{t}")),
             "spotify" => rules.push(format!("- RULE-SET,Spotify / Domain,{t}")),
-            "tiktok" => rules.push(format!("- RULE-SET,TikTok / Domain,{t}")),
+            "tiktok" => {
+                // 拦 TikTok QUIC（UDP 443）：同 1.2.5 B站手法 —— App 用 QUIC 直连做区域检测
+                // 会绕过 TCP 代理泄漏真实 IP，拦掉逼它回退 TCP 走代理。
+                for d in ["tiktok.com", "tiktokv.com", "tiktokcdn.com"] {
+                    rules.push(format!("- AND,((NETWORK,UDP),(DOMAIN-SUFFIX,{d})),REJECT-DROP"));
+                }
+                rules.push(format!("- RULE-SET,TikTok / Domain,{t}"));
+            }
             "binance" => rules.push(format!("- RULE-SET,Binance / Domain,{t}")),
             "okx" => rules.push(format!("- RULE-SET,OKX / Domain,{t}")),
             "bybit" => rules.push(format!("- RULE-SET,Bybit / Domain,{t}")),
@@ -739,6 +792,12 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("metaai", "meta.ai"),
     ("copilot", "copilot.microsoft.com"),
     ("tapnow", "tapnow.ai"),
+    ("midjourney", "midjourney.com"),
+    ("grok", "grok.com"),
+    ("cursor", "cursor.com"),
+    ("instagram", "instagram.com"),
+    ("discord", "discord.com"),
+    ("reddit", "reddit.com"),
     ("google", "google.com"),
     ("googleplay", "play.google.com"),
     ("twitch", "twitch.tv"),
@@ -897,8 +956,8 @@ fn icon_domain(key: &str) -> Option<&'static str> {
 /// 其余（AI/券商/银行/房贷/保险/购物/政府/美国加密/TikTok/Unity）=美国独立IP（无独立IP时退回美国-自动）。
 fn default_exit(key: &str, has_indep: bool) -> &'static str {
     const HK: &[&str] = &[
-        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma",
-        "telegram", "twitter", "whatsapp", "facebook", "github", "gitlab",
+        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma", "tapnow",
+        "telegram", "twitter", "whatsapp", "facebook", "instagram", "discord", "reddit", "github", "gitlab",
         "stackoverflow", "npm", "dockerhub", "pypi", "huggingface", "vercel",
         "netlify", "atlassian", "bitbucket", "replit", "artstation", "pinterest",
         "behance", "sketchfab", "cgtrader", "turbosquid", "quixel", "gumroad",

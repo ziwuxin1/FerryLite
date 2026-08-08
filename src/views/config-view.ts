@@ -116,7 +116,10 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         { key: "perplexity", label: "Perplexity", on: true, relay: true },
         { key: "metaai", label: "Meta AI", on: true, relay: true },
         { key: "copilot", label: "Copilot", on: true, relay: true },
-        { key: "tapnow", label: "TapNow（AI 视觉创作）", on: true, relay: true },
+        { key: "tapnow", label: "TapNow（AI 视觉创作 · 默认走香港）", on: true, relay: false },
+        { key: "midjourney", label: "Midjourney", on: true, relay: true },
+        { key: "grok", label: "Grok（xAI）", on: true, relay: true },
+        { key: "cursor", label: "Cursor（AI 编程 IDE）", on: true, relay: true },
       ],
     },
     {
@@ -181,6 +184,9 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         { key: "twitter", label: "Twitter(X)", on: true, relay: false },
         { key: "whatsapp", label: "WhatsApp", on: true, relay: false },
         { key: "facebook", label: "Facebook", on: true, relay: false },
+        { key: "instagram", label: "Instagram", on: true, relay: false },
+        { key: "discord", label: "Discord（含语音域名）", on: true, relay: false },
+        { key: "reddit", label: "Reddit", on: true, relay: false },
       ],
     },
     {

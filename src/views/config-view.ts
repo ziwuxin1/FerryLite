@@ -74,9 +74,9 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
   password.type = "password";
   const tls = el("input", { type: "checkbox" }) as HTMLInputElement;
 
-  // 独立 IP 启用开关：关掉则不填、不生成独立IP节点，Claude 直接走机场美国节点。
+  // 独立 IP 启用开关：默认关（多数用户没有独立IP）；关=不填、不生成独立IP节点，Claude 直接走机场美国节点。
   const enableIndep = el("input", { type: "checkbox" }) as HTMLInputElement;
-  enableIndep.checked = true;
+  enableIndep.checked = false;
   const indepBody = el("div", {}, [
     el("div", { class: "field" }, [
       el("label", {}, ["从分享链接导入（socks://，自动填充）"]),
@@ -105,6 +105,9 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
   enableIndep.onchange = (): void => {
     indepBody.style.display = enableIndep.checked ? "" : "none";
   };
+  indepBody.style.display = "none"; // 初始与「默认不启用」一致
+
+
 
   // 傻瓜式分流（APP 级 · 折叠分类）：左勾=走代理；右「中转」开=独立IP(含中转)、关=机场；不勾=直连。
   const APP_CATALOG: { cat: string; apps: { key: string; label: string; on: boolean; relay: boolean }[] }[] = [
@@ -550,7 +553,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       el("span", {}, ["启用独立 IP（美国静态家宽 · 账密代理）"]),
     ]),
     el("div", { class: "field-hint" }, [
-      "没有独立 IP 就关掉它 —— Claude 等将直接走机场美国节点（不做独立IP出口校验）。",
+      "默认关闭 —— 有美国独立 IP（静态家宽）再打开；不开则 Claude 等直接走机场美国节点（不做独立IP出口校验）。",
     ]),
     indepBody,
   ]);

@@ -52,8 +52,8 @@ body {
 input[type="checkbox"],
 input[type="radio"] {
   accent-color: var(--primary);
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 
 #app {
@@ -222,7 +222,9 @@ input[type="radio"] {
   color: var(--ink);
 }
 .checkbox-row input {
-  width: auto;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 /* ---------- 按钮（硬阴影 + 按下位移）---------- */

@@ -342,6 +342,7 @@ fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
             "perplexity" => rules.push(format!("- RULE-SET,Perplexity / Domain,{t}")),
             "metaai" => rules.push(format!("- RULE-SET,Meta AI / Domain,{t}")),
             "copilot" => rules.push(format!("- RULE-SET,Copilot / Domain,{t}")),
+            "tapnow" => rules.push(format!("- DOMAIN-SUFFIX,tapnow.ai,{t}")),
             "youtube" => rules.push(format!("- RULE-SET,Youtube / Domain,{t}")),
             "netflix" => {
                 rules.push(format!("- RULE-SET,Netflix / Domain,{t}"));
@@ -737,6 +738,7 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("perplexity", "perplexity.ai"),
     ("metaai", "meta.ai"),
     ("copilot", "copilot.microsoft.com"),
+    ("tapnow", "tapnow.ai"),
     ("google", "google.com"),
     ("googleplay", "play.google.com"),
     ("twitch", "twitch.tv"),

@@ -116,6 +116,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
         { key: "perplexity", label: "Perplexity", on: true, relay: true },
         { key: "metaai", label: "Meta AI", on: true, relay: true },
         { key: "copilot", label: "Copilot", on: true, relay: true },
+        { key: "tapnow", label: "TapNow（AI 视觉创作）", on: true, relay: true },
       ],
     },
     {

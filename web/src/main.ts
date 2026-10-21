@@ -3,6 +3,8 @@
 
 import "../../src/styles.css";
 import "@fontsource-variable/space-grotesk";
+import "./brand.css";
+import logoUrl from "../../assets/logo.png";
 import { el } from "../../src/dom";
 import { setPlatform } from "../../src/platform";
 import { renderConfigView } from "../../src/views/config-view";
@@ -13,6 +15,20 @@ if (!appEl) throw new Error("#app 未找到");
 const root: HTMLDivElement = appEl;
 
 setPlatform(webPlatform);
+
+// 品牌页头：满宽黄条 + logo + 品牌名 + 标语（与 README / 桌面版同一套视觉）。
+root.append(
+  el("div", { class: "topbar brand" }, [
+    el("div", { class: "brand-row" }, [
+      el("img", { class: "brand-logo", src: logoUrl, alt: "Ferry" }),
+      el("div", {}, [
+        el("span", { class: "brand-name" }, ["Ferry"]),
+        el("span", { class: "brand-sep" }, ["· 链式代理"]),
+      ]),
+    ]),
+    el("div", { class: "sub" }, ["专为回国设计的智能分流，稳稳处理美国急事"]),
+  ]),
+);
 
 // 说明条：讲清楚这版能做什么、不能做什么，以及数据不出浏览器这件事。
 root.append(

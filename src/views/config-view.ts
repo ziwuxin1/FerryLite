@@ -594,20 +594,25 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
     }
   };
 
-  // 返回按钮只在桌面版有意义：网页版没有状态盘，整站就这一个表单页。
-  const topbarRight =
+  // 页头只有桌面版在这里渲染（含「返回状态盘」）；网页版的品牌页头由 web 入口自己出，
+  // 见 web/src/main.ts —— 那边要放 logo 和品牌名，和表单无关。
+  const topbar =
     platform().kind === "desktop"
-      ? [el("button", { class: "btn", onclick: onDone }, ["← 返回状态盘"])]
+      ? [
+          el("div", { class: "topbar" }, [
+            el("div", {}, [
+              el("h1", {}, ["配置生成"]),
+              el("div", { class: "sub" }, [
+                "首次使用 / 换 IP 时填写；生成成品 yaml 后导入你的 Clash 客户端。",
+              ]),
+            ]),
+            el("button", { class: "btn", onclick: onDone }, ["← 返回状态盘"]),
+          ]),
+        ]
       : [];
 
   const view = el("div", {}, [
-    el("div", { class: "topbar" }, [
-      el("div", {}, [
-        el("h1", {}, ["配置生成"]),
-        el("div", { class: "sub" }, ["首次使用 / 换 IP 时填写；生成成品 yaml 后导入你的 Clash 客户端。"]),
-      ]),
-      ...topbarRight,
-    ]),
+    ...topbar,
     pureCard,
     dnsCard,
     el("div", { class: "card" }, [

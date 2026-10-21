@@ -21,8 +21,10 @@ tauri-plugin-opener = "2"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# 仅用于「注入后语法体检」，绝不 load→dump（会丢注释与锚点）。
-serde_yaml = "0.9"
+
+# 配置生成核心（纯逻辑 · 同一份实现也编译成 WASM 给网页版用）。
+# serde_yaml 随核心逻辑一起迁到 ferry-core，这里不再直接依赖。
+ferry-core = { path = "../ferry-core" }
 
 # 健康检查：经本地代理端口请求回显源。rustls 自带根证书，免系统依赖，CI/学生机都能跑。
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

@@ -4,10 +4,16 @@ node_modules
 
 # 前端构建产物
 dist
+dist-web
 *.local
+
+# wasm-pack 产物（由 npm run build:wasm 生成，不入库）
+web/src/ferry-wasm/
 
 # Rust / Tauri 构建产物
 src-tauri/target
+ferry-core/target
+ferry-wasm/target
 
 # Tauri 生成物
 src-tauri/gen/schemas

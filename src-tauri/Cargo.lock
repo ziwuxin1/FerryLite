@@ -475,10 +475,10 @@ dependencies = [
 name = "claude-launcher"
 version = "1.2.11"
 dependencies = [
+ "ferry-core",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
- "serde_yaml",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
@@ -964,6 +964,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e6853b52649d4ac5c0bd02320cddc5ba956bdb407c4b75a2c6b75bf51500f8c"
 dependencies = [
  "simd-adler32",
+]
+
+[[package]]
+name = "ferry-core"
+version = "1.2.11"
+dependencies = [
+ "serde",
+ "serde_yaml",
 ]
 
 [[package]]

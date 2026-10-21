@@ -1,6 +1,8 @@
 import "./styles.css";
 import "@fontsource-variable/space-grotesk"; // 现代 grotesk 字体（打包进 exe，离线/国内可用；中文自动回退雅黑）
 import { api } from "./api";
+import { setPlatform } from "./platform";
+import { tauriPlatform } from "./platform.tauri";
 import { renderConfigView } from "./views/config-view";
 import { renderDashboardView } from "./views/dashboard-view";
 
@@ -72,5 +74,8 @@ void import("@tauri-apps/api/app")
   .then((v) => {
     versionBadge.textContent = `v${v}`;
   });
+
+// 配置表单通过 platform 接缝工作：桌面版在这里装上 tauri 实现（网页版入口装 WASM 实现）。
+setPlatform(tauriPlatform);
 
 void navigate("dashboard");

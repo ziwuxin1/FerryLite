@@ -44,18 +44,41 @@ Smart split‑routing built for going back to China.
 | `Ferry-x.y.z.exe` | **单文件免安装** —— 双击直接运行（需 WebView2，Win10/11 自带）。 |
 | `Ferry-x.y.z-setup.exe` | 安装版，带开始菜单快捷方式。 |
 
+## 🌐 网页版（只生成配置）
+
+不想装桌面版、或者在 Mac / Linux 上，可以用网页版：填表 → 浏览器里直接算出成品 `yaml` → 下载 → 导入你自己的 Clash 客户端。
+
+- **纯静态，没有后端。** 机场订阅链接和独立 IP 的账号密码只在你这台机器的浏览器内存里参与计算，不经过任何服务器。
+- **生成逻辑与桌面版同源。** 两端都用 `ferry-core` 这一份 Rust 实现，网页版跑的是它编译出来的 WASM，分流规则改一处两端同时生效。
+- **做不到的部分：** 链路体检、出口 IP 校验、Claude 一键启停都要操作本机端口与进程，浏览器没有这个能力，这些功能请用桌面版。
+
 ## 🔧 从源码构建
 
-环境：Node 18+、Rust（stable）、Windows。
+环境：Node 18+、Rust（stable）。桌面版需要 Windows；网页版任意平台。
 
 ```powershell
 npm install
-npm run tauri build   # → src-tauri/target/release/（便携 exe + NSIS 安装包）
+
+# 桌面版 → src-tauri/target/release/（便携 exe + NSIS 安装包）
+npm run tauri build
+
+# 网页版 → dist-web/（一堆静态文件，丢到任意静态托管即可）
+npm run build:web
 ```
+
+网页版首次构建要先装 WASM 工具链（`build:web` 会自动调用 `build:wasm`）：
+
+```powershell
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack
+```
+
+本地预览网页版：`npm run dev:web`。
 
 ## 🧱 原理
 
-单个 Tauri `.exe`（Rust 后端 + 原生 TypeScript 前端）：
+仓库分三块：`ferry-core`（纯配置生成逻辑，无任何 IO）、`src-tauri`（桌面版外壳）、`ferry-wasm` + `web`（网页版）。
+桌面版是单个 Tauri `.exe`（Rust 后端 + 原生 TypeScript 前端）：
 
 - **配置生成器**用文本锚点把你的机场订阅 + 住宅 IP 节点注入 Clash 模板（绝不 `load→dump`，保住注释与锚点），产出可直接导入的 `yaml`。
 - **状态盘**做启动前体检，然后起 / 安全关 Claude。

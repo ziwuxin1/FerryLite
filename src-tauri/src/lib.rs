@@ -9,7 +9,9 @@ mod config;
 mod health;
 mod launch;
 mod shutdown;
-mod yaml_inject;
+// 配置生成核心已抽到 ferry-core crate（桌面版与网页版 WASM 共用）。
+// 这里以 yaml_inject 为别名重新导出，crate::yaml_inject::* 的调用点无需改动。
+pub(crate) use ferry_core as yaml_inject;
 
 use commands::AppState;
 use tauri::{

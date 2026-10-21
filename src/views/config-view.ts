@@ -1,8 +1,7 @@
 // 模块1 UI：配置生成表单。见设计 §5.1 / §6.1。支持可选添加多个机场（名字 + 订阅地址）。
-import { api } from "../api";
 import type { GenerateInput, Protocol } from "../api";
 import { el } from "../dom";
-import { save } from "@tauri-apps/plugin-dialog";
+import { platform } from "../platform";
 
 interface AirportRow {
   wrapper: HTMLElement;
@@ -94,7 +93,9 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
     field(
       "实际出口IP（基准·可选）",
       exitIp,
-      "住宅代理常「入口网关域名 ≠ 真实出口IP」。先点一次体检看回显IP，若是干净的美国住宅IP，把它填到这里再重新生成，第2步即可通过；留空则用上面的 server 当基准。",
+      platform().kind === "desktop"
+        ? "住宅代理常「入口网关域名 ≠ 真实出口IP」。先点一次体检看回显IP，若是干净的美国住宅IP，把它填到这里再重新生成，第2步即可通过；留空则用上面的 server 当基准。"
+        : "住宅代理常「入口网关域名 ≠ 真实出口IP」。若你已知真实出口IP，填这里当校验基准；留空则用上面的 server。（出口校验需桌面版）",
     ),
     el("div", { class: "row-2" }, [field("用户名", username), field("密码", password)]),
     el("label", { class: "checkbox-row" }, [
@@ -463,7 +464,7 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
   ]);
 
   const submit = el("button", { class: "btn primary block", onclick: onSubmit }, [
-    "生成配置并另存为 .yaml",
+    platform().kind === "desktop" ? "生成配置并另存为 .yaml" : "生成配置并下载 .yaml",
   ]) as HTMLButtonElement;
 
   function setStatus(msg: string, kind: "" | "ok" | "err" | "warn" = ""): void {
@@ -521,33 +522,18 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       dnsOverride: dnsOverride.checked,
     };
     try {
-      const result = await api.generateConfig(payload);
-      setStatus("✅ 校验通过，请选择保存位置…", "ok");
-      const path = await save({
-        title: "保存成品 Clash 配置",
-        defaultPath: result.suggestedFileName,
-        filters: [{ name: "Clash 配置", extensions: ["yaml", "yml"] }],
-      });
-      if (!path) {
+      const result = await platform().generateConfig(payload);
+      setStatus("✅ 校验通过，正在落地…", "ok");
+      // 落地方式由平台决定：桌面版弹保存对话框写盘，网页版直接触发下载。
+      const done = await platform().saveResult(result);
+      if (!done) {
         setStatus("已取消保存（配置未写入）。", "warn");
         return;
       }
-      const cfg = await api.saveGenerated({
-        path,
-        yaml: result.yaml,
-        exitBasisIp: result.exitBasisIp,
-        proxyEndpoint: result.proxyEndpoint,
-        clashApiUrl: result.clashApiUrl,
-        clashSecret: result.clashSecret,
-        lastUpdated: new Date().toISOString(),
-      });
-      setStatus(
-        `✅ 已保存到：${cfg.generatedYamlPath}\n请把它导入你的 Clash 客户端，再回主页点「一键代理」。`,
-        "ok",
-      );
+      setStatus("✅ " + done, "ok");
       window.setTimeout(onDone, 1600);
     } catch (e) {
-      setStatus(`❌ ${String(e)}`, "err");
+      setStatus(`❌ ${e instanceof Error ? e.message : String(e)}`, "err");
     } finally {
       submit.disabled = false;
     }
@@ -582,7 +568,10 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       el("span", { style: "font-weight:700" }, ["DNS 覆写（默认开 · fake-ip 接管 DNS）"]),
     ]),
     el("div", { class: "field-hint" }, [
-      "机场公告要求「关闭 DNS 覆写」时取消勾选：生成的配置 dns.enable 改为 false，域名解析交回系统/上游，避免线路调整后 DNS 缓存导致无法使用。已有配置不想重新生成？回状态盘用「DNS 覆写」卡一键切换即可。",
+      "机场公告要求「关闭 DNS 覆写」时取消勾选：生成的配置 dns.enable 改为 false，域名解析交回系统/上游，避免线路调整后 DNS 缓存导致无法使用。" +
+        (platform().kind === "desktop"
+          ? "已有配置不想重新生成？回状态盘用「DNS 覆写」卡一键切换即可。"
+          : ""),
     ]),
   ]);
 
@@ -603,13 +592,19 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
     }
   };
 
+  // 返回按钮只在桌面版有意义：网页版没有状态盘，整站就这一个表单页。
+  const topbarRight =
+    platform().kind === "desktop"
+      ? [el("button", { class: "btn", onclick: onDone }, ["← 返回状态盘"])]
+      : [];
+
   const view = el("div", {}, [
     el("div", { class: "topbar" }, [
       el("div", {}, [
         el("h1", {}, ["配置生成"]),
         el("div", { class: "sub" }, ["首次使用 / 换 IP 时填写；生成成品 yaml 后导入你的 Clash 客户端。"]),
       ]),
-      el("button", { class: "btn", onclick: onDone }, ["← 返回状态盘"]),
+      ...topbarRight,
     ]),
     pureCard,
     dnsCard,

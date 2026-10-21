@@ -9,7 +9,10 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "icons": "node scripts/gen-icon.mjs && tauri icon src-tauri/app-icon.png"
+    "icons": "node scripts/gen-icon.mjs && tauri icon src-tauri/app-icon.png",
+    "build:wasm": "wasm-pack build ferry-wasm --target web --release --out-dir ../web/src/ferry-wasm --out-name ferry_wasm",
+    "dev:web": "vite --config vite.config.web.ts",
+    "build:web": "npm run build:wasm && tsc --noEmit && vite build --config vite.config.web.ts"
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "^5.2.10",

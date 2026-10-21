@@ -3,6 +3,10 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+  /* logo.png 是黄底方块，压在黄条上会和背景糊成一片（只剩描边）。
+     页头改深色：黄底 logo 自然跳出来，不必另做一版深色图。 */
+  background: var(--ink);
+  border-bottom-color: var(--yellow);
 }
 
 .brand-row {
@@ -23,13 +27,13 @@
   font-weight: 800;
   letter-spacing: -1px;
   line-height: 1;
-  color: var(--ink);
+  color: #fff;
 }
 
 .brand-sep {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0;
-  color: var(--ink);
+  color: var(--yellow);
   margin-left: 8px;
 }

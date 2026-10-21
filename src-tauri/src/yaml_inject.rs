@@ -362,6 +362,8 @@ fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
                 rules.push(format!("- DOMAIN-SUFFIX,copilot.microsoft.com,{t}"));
             }
             "tapnow" => rules.push(format!("- DOMAIN-SUFFIX,tapnow.ai,{t}")),
+            // 自家官网：DOMAIN-SUFFIX 一条覆盖 www / 裸域 / 全部子域。
+            "maxsacademy" => rules.push(format!("- DOMAIN-SUFFIX,maxsacademy.com,{t}")),
             "midjourney" => rules.push(format!("- DOMAIN-SUFFIX,midjourney.com,{t}")),
             "grok" => {
                 for d in ["grok.com", "x.ai"] {
@@ -792,6 +794,7 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("metaai", "meta.ai"),
     ("copilot", "copilot.microsoft.com"),
     ("tapnow", "tapnow.ai"),
+    ("maxsacademy", "maxsacademy.com"),
     ("midjourney", "midjourney.com"),
     ("grok", "grok.com"),
     ("cursor", "cursor.com"),
@@ -956,7 +959,7 @@ fn icon_domain(key: &str) -> Option<&'static str> {
 /// 其余（AI/券商/银行/房贷/保险/购物/政府/美国加密/TikTok/Unity）=美国独立IP（无独立IP时退回美国-自动）。
 fn default_exit(key: &str, has_indep: bool) -> &'static str {
     const HK: &[&str] = &[
-        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma", "tapnow",
+        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma", "tapnow", "maxsacademy",
         "telegram", "twitter", "whatsapp", "facebook", "instagram", "discord", "reddit", "github", "gitlab",
         "stackoverflow", "npm", "dockerhub", "pypi", "huggingface", "vercel",
         "netlify", "atlassian", "bitbucket", "replit", "artstation", "pinterest",
@@ -1641,6 +1644,28 @@ mod tests {
         let y = inject(&s).unwrap();
         assert!(y.contains("name: \"Figma\", type: select, icon: \"https://icon.horse/icon/figma.com\", proxies: [香港-自动,"));
         assert!(y.contains("- DOMAIN-SUFFIX,figma.com,Figma"));
+    }
+
+    #[test]
+    fn maxsacademy_split_defaults_to_hk_with_all_regions() {
+        // 自家官网：默认出口=香港-自动（首位），但菜单里仍保留其余各国 -自动 供 zashboard 切换。
+        let mut s = sample();
+        s.split_apps = vec![SplitApp {
+            key: "maxsacademy".into(),
+            name: "Max's Academy 官网".into(),
+            relay: false,
+        }];
+        let y = inject(&s).unwrap();
+        assert!(y.contains(
+            "name: \"Max's Academy 官网\", type: select, icon: \"https://icon.horse/icon/maxsacademy.com\", proxies: [香港-自动,"
+        ));
+        // 一条 DOMAIN-SUFFIX 覆盖 www.maxsacademy.com / 裸域 / 全部子域。
+        assert!(y.contains("- DOMAIN-SUFFIX,maxsacademy.com,Max's Academy 官网"));
+        // 其他国家的 -自动 选项必须在同一组菜单里（用户可切）。
+        for region in ["美国-自动", "台湾-自动", "日本-自动", "新加坡-自动", "韩国-自动", "其他-自动"] {
+            assert!(y.contains(region), "缺少出口选项：{region}");
+        }
+        serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
     }
 
     #[test]

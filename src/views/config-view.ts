@@ -126,6 +126,13 @@ export function renderConfigView(root: HTMLElement, onDone: () => void): void {
       ],
     },
     {
+      // 自家官网：走代理加速（默认香港-自动，组内可随时切到美国/日本/新加坡等 -自动）。
+      cat: "自家官网（默认走香港自动 · 可切其他国家）",
+      apps: [
+        { key: "maxsacademy", label: "Max's Academy 官网（maxsacademy.com）", on: true, relay: false },
+      ],
+    },
+    {
       cat: "谷歌 / 苹果 / 微软（大厂·走机场即可）",
       apps: [
         { key: "google", label: "Google（搜索 / Gmail / Drive / Play）", on: true, relay: false },

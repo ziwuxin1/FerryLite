@@ -1,4 +1,4 @@
-/* 网页版品牌页头：复用 .topbar 的满宽黄条机制，内部改成「logo + 品牌名」一行、标语一行。 */
+/* 网页版品牌页头：复用 .topbar 的满宽黄条机制，内部改成「logo + 品牌名」一行。 */
 .topbar.brand {
   flex-direction: column;
   align-items: flex-start;
@@ -32,8 +32,4 @@
   letter-spacing: 0;
   color: var(--ink);
   margin-left: 8px;
-}
-
-.topbar.brand .sub {
-  margin-top: 0;
 }

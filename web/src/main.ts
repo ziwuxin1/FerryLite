@@ -16,7 +16,7 @@ const root: HTMLDivElement = appEl;
 
 setPlatform(webPlatform);
 
-// 品牌页头：满宽黄条 + logo + 品牌名 + 标语（与 README / 桌面版同一套视觉）。
+// 品牌页头：满宽黄条 + logo + 品牌名（与 README / 桌面版同一套视觉）。
 root.append(
   el("div", { class: "topbar brand" }, [
     el("div", { class: "brand-row" }, [
@@ -26,7 +26,6 @@ root.append(
         el("span", { class: "brand-sep" }, ["· 链式代理"]),
       ]),
     ]),
-    el("div", { class: "sub" }, ["专为回国设计的智能分流，稳稳处理美国急事"]),
   ]),
 );
 

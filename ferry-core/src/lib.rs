@@ -6,14 +6,14 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
+mod profiles;
+mod taiwan;
+mod custom;
+pub use custom::CustomGroup;
+pub use profiles::ConfigTarget;
+
 /// 带锚点标记的模板（编译期嵌入 exe，运行时自包含，无需外部文件）。
 pub const TEMPLATE: &str = include_str!("../templates/MAXs_template_anchored.yaml");
-
-/// 纯回国模式模板：人在国外，国内→回国节点、其余→直连，去掉所有翻墙地区组。
-/// 只含 3 个锚点（机场 / 各国内 App 组 / 各国内 App 规则），其余锚点在此模板里不存在，
-/// inject() 对应的 replace() 自然成为 no-op。
-pub const TEMPLATE_BACKCN: &str =
-    include_str!("../templates/MAXs_template_backcn_anchored.yaml");
 
 /// 出口 IP 验证回显域名。注入为「强制走 Claude 组」的规则；health 模块据此构造回显请求。
 /// 二者主机名必须严格一致（见 health::ECHO_URLS）。
@@ -76,17 +76,26 @@ pub struct IndependentNode {
 pub struct GenerateInput {
     pub airports: Vec<Airport>,
     pub independent_nodes: Vec<IndependentNode>,
-    /// 傻瓜式分流（APP 级）：每个启用的 APP 一项；relay=true 走独立IP(含中转)、false 走机场美国节点。空=全按默认规则。
+    /// 傻瓜式分流（APP 级）：每个启用的 APP 一项；仅配置美国独立IP时 relay=true 才使用它，否则按类别选择机场或直连。空=全按默认规则。
     #[serde(default)]
     pub split_apps: Vec<SplitApp>,
-    /// 纯回国模式：人在国外，国内→回国节点、其余→直连，去掉所有翻墙地区组。
-    /// 为 true 时用 TEMPLATE_BACKCN，且只处理回国类 App（其余 App / 独立IP 忽略）。
     #[serde(default)]
-    pub back_cn_only: bool,
+    pub custom_groups: Vec<CustomGroup>,
     /// DNS 覆写开关（默认开）：true=dns.enable: true（fake-ip 接管 DNS）；
     /// false=dns.enable: false（机场公告要求关闭 DNS 覆写时用，解析交回系统/上游）。
     #[serde(default = "default_dns_override")]
     pub dns_override: bool,
+    /// Export destination; omitted by older clients means PC.
+    #[serde(default)]
+    pub target: ConfigTarget,
+    /// Separate from the US exit used by Claude and US services.
+    #[serde(default)]
+    pub taiwan_node: Option<IndependentNode>,
+    #[serde(default)]
+    pub exchange_only: bool,
+    /// Generated locally by the UI. Controller always binds to loopback.
+    #[serde(default)]
+    pub controller_secret: String,
 }
 
 fn default_dns_override() -> bool {
@@ -113,6 +122,9 @@ pub struct GenerateResult {
     pub clash_secret: String,
     pub exit_basis_ip: String,
     pub suggested_file_name: String,
+    pub target: ConfigTarget,
+    pub export_only: bool,
+    pub instructions: String,
 }
 
 /// 生成成品（注入 + 校验 + 解析回元信息）。模块1 的对外入口。
@@ -140,13 +152,21 @@ pub fn generate(input: &GenerateInput) -> Result<GenerateResult, String> {
         clash_api_url,
         clash_secret,
         exit_basis_ip,
-        suggested_file_name: "Ferry.yaml".to_string(),
+        suggested_file_name: format!("Ferry-{}{}.yaml", input.target.file_label(), if input.exchange_only { "-Exchanges" } else { "" }),
+        target: input.target,
+        export_only: input.target == ConfigTarget::Nikki || input.exchange_only,
+        instructions: profiles::instructions(input),
     })
 }
 
 /// 文本锚点注入（4 处）。
 pub fn inject(input: &GenerateInput) -> Result<String, String> {
     validate_input(input)?;
+    if input.exchange_only {
+        let yaml = profiles::apply_profile(taiwan::exchange_config(input)?, input);
+        post_validate(&yaml)?;
+        return Ok(yaml);
+    }
 
     // 机场 provider 块：首块由模板的 2 空格缩进承接，后续块 join 补 2 空格。
     let providers_block = input
@@ -164,28 +184,46 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
         .first()
         .map(|n| n.name.trim().to_string())
         .unwrap_or_else(|| "美国-自动".to_string());
-    let node_block = input
+    let mut node_block = input
         .independent_nodes
         .iter()
         .map(build_node_line)
         .collect::<Vec<_>>()
         .join("\n  ");
+    if let Some(node) = &input.taiwan_node {
+        if !node_block.is_empty() { node_block.push_str("\n  "); }
+        node_block.push_str(&taiwan::node_line(node));
+    }
 
-    // 纯回国模式用专属模板；其缺少的锚点（独立IP节点 / Claude组 / 顶部&验证规则）对应的 replace() 为 no-op。
-    let back = input.back_cn_only;
-    let template = if back { TEMPLATE_BACKCN } else { TEMPLATE };
-
+    // Replace template references before inserting credentials or user text.
+    let template = if has_indep { TEMPLATE.replace("美国独立IP", &primary) } else { TEMPLATE.to_string() };
+    let mut split_groups = build_split_groups(&input.split_apps, has_indep)
+        .replace("美国独立IP", &primary);
+    if input.taiwan_node.is_some() {
+        split_groups = taiwan::lock_groups(&split_groups, input);
+        split_groups.push_str("\n  ");
+        split_groups.push_str(&taiwan::groups(input));
+    }
+    split_groups.push_str("\n  ");
+    split_groups.push_str(&taiwan::media_groups(input));
+    if !input.custom_groups.is_empty() {
+        split_groups.push_str(&format!("\n  {}", custom::groups(input)));
+    }
+    let mut top_rules = if input.taiwan_node.is_some() {
+        format!("{}\n  {}", taiwan::rules(input), build_top_rules())
+    } else { build_top_rules() };
+    top_rules = format!("{}\n  {top_rules}", taiwan::media_rules());
     let mut yaml = template
         .replace(ANCHOR_PROVIDERS, &providers_block)
         .replace(ANCHOR_PROXY_NODE, &node_block)
         .replace(ANCHOR_CLAUDE_GROUP, &build_claude_group(has_indep, &primary))
-        .replace(ANCHOR_SPLIT_GROUPS, &build_split_groups(&input.split_apps, has_indep, back))
-        .replace(ANCHOR_TOP_RULES, &build_top_rules())
-        .replace(ANCHOR_SPLIT_RULES, &build_split_rules(&input.split_apps, back))
+        .replace(ANCHOR_SPLIT_GROUPS, &split_groups)
+        .replace(ANCHOR_TOP_RULES, &top_rules)
+        .replace(ANCHOR_SPLIT_RULES, &format!("{}\n  {}", custom::rules(input), build_split_rules(&input.split_apps)))
         .replace(ANCHOR_VERIFY_RULES, &build_verify_rules());
 
-    // 纯回国模板本就不含「美国独立IP」引用；非回国且无独立IP 时才需清理模板里的占位引用。
-    if !has_indep && !back {
+    // 无美国独立 IP 时清理模板里的占位引用。
+    if !has_indep {
         yaml = strip_independent_refs(&yaml);
     }
 
@@ -194,6 +232,8 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
     if !input.dns_override {
         yaml = set_dns_enable(&yaml, false)?;
     }
+
+    yaml = profiles::apply_profile(yaml, input);
 
     post_validate(&yaml)?;
     Ok(yaml)
@@ -257,7 +297,7 @@ fn build_provider_block(airport: &Airport) -> String {
     format!(
         "{name}:\n    url: \"{url}\"\n    type: http\n    interval: 86400\n    health-check:\n      enable: true\n      url: https://www.gstatic.com/generate_204\n      interval: 300\n    proxy: 直连",
         name = airport.name.trim(),
-        url = airport.url.trim(),
+        url = airport.url.trim().replace('\\', "\\\\"),
     )
 }
 
@@ -316,25 +356,13 @@ fn build_verify_rules() -> String {
     String::new()
 }
 
-/// 回国类 App 集合（国外访问国内）：默认出口=回国-自动；纯回国模式下也只处理这些 App。
-/// 注意 `allcn`（全部国内网站）在此集合内，但纯回国模式会单独排除它（模板已含 China→回国 兜底）。
-const BACK_APPS: &[&str] = &[
-    "netease", "qqmusic", "bilibili", "iqiyi", "youku", "qqvideo", "mgtv", "migu", "ximalaya",
-    "douyin", "weread", "xiaohongshu", "weibo", "zhihu", "kuaishou", "baidu", "qq", "wangyi",
-    "douban", "kugou", "kuwo", "allcn",
-];
-
 /// 傻瓜式分流（APP 级）：把每个启用 APP 的域名规则置顶路由到「该 APP 自己的策略组」（组名=app.name，
 /// 在 Claude/TEST/兜底之前命中）。每组默认出口由 build_split_groups 按 relay/类别预选，用户可在 zashboard 逐个切换。
 /// 复用模板已有 rule-provider 名（带 ` / Domain`/` / IP` 后缀）；无 provider 的站点内联 DOMAIN-SUFFIX。
-fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
+fn build_split_rules(apps: &[SplitApp]) -> String {
     let mut rules: Vec<String> = Vec::new();
     for app in apps {
         let key = app.key.as_str();
-        // 纯回国模式：只生成回国类 App 的规则；allcn 跳过（模板已含 China→回国 兜底）；其余 App 忽略。
-        if back_cn_only && (!BACK_APPS.contains(&key) || key == "allcn") {
-            continue;
-        }
         let t = app.name.as_str(); // 目标 = 该 APP 自己的策略组（组名即 app.name）
         match key {
             // 核心 AI 服务：RULE-SET（外部维护）+ 内联域名兜底（规则集源失效时分流不静默丢失）。
@@ -671,109 +699,6 @@ fn build_split_rules(apps: &[SplitApp], back_cn_only: bool) -> String {
                     rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
                 }
             }
-            // 回国分流（国外访问国内 · 走回国节点）：国内 App 域名先命中 → 回国组，不被 China→国内→直连 抢走。
-            "netease" => {
-                for d in ["music.163.com", "126.net"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "qqmusic" => {
-                for d in ["y.qq.com", "music.qq.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "bilibili" => {
-                // 番剧需完整：biliapi.com(.com 后缀=番剧 API) + 视频 CDN 各后缀（参考 elysias123/bilibili-rule）。
-                for d in [
-                    "bilibili.com", "biliapi.net", "biliapi.com", "hdslb.com",
-                    "bilivideo.com", "bilivideo.cn", "acgvideo.com",
-                ] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "iqiyi" => {
-                for d in ["iqiyi.com", "iqiyipic.com", "qy.net"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "youku" => {
-                for d in ["youku.com", "ykimg.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "qqvideo" => rules.push(format!("- DOMAIN-SUFFIX,v.qq.com,{t}")),
-            "mgtv" => {
-                for d in ["mgtv.com", "hitv.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "migu" => {
-                for d in ["migu.cn", "miguvideo.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "ximalaya" => {
-                for d in ["ximalaya.com", "xmcdn.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "douyin" => {
-                for d in ["douyin.com", "douyinpic.com", "amemv.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "weread" => rules.push(format!("- DOMAIN-SUFFIX,weread.qq.com,{t}")),
-            "xiaohongshu" => {
-                for d in ["xiaohongshu.com", "xhscdn.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "weibo" => {
-                for d in ["weibo.com", "weibo.cn", "sinaimg.cn"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "zhihu" => {
-                for d in ["zhihu.com", "zhimg.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "kuaishou" => {
-                for d in ["kuaishou.com", "gifshow.com", "kwimgs.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            // 百度（搜索 + 网盘）：百度系主域较广，置于 China 兜底之前即可命中回国组。
-            "baidu" => {
-                for d in ["baidu.com", "bdstatic.com", "bdimg.com", "baidupcs.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            // QQ（含微信等腾讯系）：qq.com 较广，但排在 qqmusic/qqvideo/weread 的具体域名之后，故那几个仍走各自组。
-            "qq" => {
-                for d in ["qq.com", "qlogo.cn"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            // 网易（新闻/邮箱）：163.com 较广，排在 netease(music.163.com) 之后，网易云音乐仍走自己组。
-            "wangyi" => {
-                for d in ["163.com", "163.net", "126.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "douban" => {
-                for d in ["douban.com", "doubanio.com"] {
-                    rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
-                }
-            }
-            "kugou" => rules.push(format!("- DOMAIN-SUFFIX,kugou.com,{t}")),
-            "kuwo" => rules.push(format!("- DOMAIN-SUFFIX,kuwo.cn,{t}")),
-            // 全部国内网站（可选 · 默认关）：复用模板已有 China geosite/geoip 规则集，整体指向回国组。
-            // 注入点在底部 China→国内 之前，勾上即「所有 .cn + 中国 IP → 回国节点」。
-            "allcn" => {
-                rules.push(format!("- RULE-SET,China / Domain,{t}"));
-                rules.push(format!("- RULE-SET,China / IP,{t},no-resolve"));
-            }
             _ => {}
         }
     }
@@ -924,29 +849,6 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("playstation", "playstation.com"),
     ("nintendo", "nintendo.com"),
     ("riot", "riotgames.com"),
-    // 回国（国外访问国内）
-    ("netease", "music.163.com"),
-    ("qqmusic", "y.qq.com"),
-    ("bilibili", "bilibili.com"),
-    ("iqiyi", "iqiyi.com"),
-    ("youku", "youku.com"),
-    ("qqvideo", "v.qq.com"),
-    ("mgtv", "mgtv.com"),
-    ("migu", "migu.cn"),
-    ("ximalaya", "ximalaya.com"),
-    ("douyin", "douyin.com"),
-    ("weread", "weread.qq.com"),
-    ("xiaohongshu", "xiaohongshu.com"),
-    ("weibo", "weibo.com"),
-    ("zhihu", "zhihu.com"),
-    ("kuaishou", "kuaishou.com"),
-    ("baidu", "baidu.com"),
-    ("qq", "qq.com"),
-    ("wangyi", "163.com"),
-    ("douban", "douban.com"),
-    ("kugou", "kugou.com"),
-    ("kuwo", "kuwo.cn"),
-    // allcn（全部国内网站）无单一域名图标，留空（build_split_groups 优雅降级）。
 ];
 
 fn icon_domain(key: &str) -> Option<&'static str> {
@@ -954,7 +856,7 @@ fn icon_domain(key: &str) -> Option<&'static str> {
 }
 
 /// 每个 APP 的默认出口（select 组首位=zashboard 导入后默认选中的节点）。固定映射（用户指定）：
-/// 直连=Apple/Microsoft；回国-自动=国内 App（网易云/B站/爱奇艺…，国外访问国内）；台湾-自动=离岸加密交易所；
+/// 直连=Apple/Microsoft；台湾-自动=离岸加密交易所；
 /// 香港-自动=流媒体/社媒/开发者/设计/游戏/Google/Perforce；
 /// 其余（AI/券商/银行/房贷/保险/购物/政府/美国加密/TikTok/Unity）=美国独立IP（无独立IP时退回美国-自动）。
 fn default_exit(key: &str, has_indep: bool) -> &'static str {
@@ -971,8 +873,7 @@ fn default_exit(key: &str, has_indep: bool) -> &'static str {
     const DIRECT: &[&str] = &["apple", "microsoft"];
     if DIRECT.contains(&key) {
         "直连"
-    } else if BACK_APPS.contains(&key) {
-        "回国-自动"
+
     } else if TW.contains(&key) {
         "台湾-自动"
     } else if HK.contains(&key) {
@@ -985,31 +886,32 @@ fn default_exit(key: &str, has_indep: bool) -> &'static str {
 }
 
 /// 傻瓜式分流（APP 级）：为每个启用的 APP 生成一个独立 select 策略组（组名=app.name），
-/// proxies 是完整出口菜单、默认出口（首位）按 default_exit 的固定映射预选；用户在 zashboard 里逐个切换。
-fn build_split_groups(apps: &[SplitApp], has_indep: bool, back_cn_only: bool) -> String {
-    // 完整出口菜单（用户逐 APP 自选）。纯回国模式只保留回国相关组；无独立 IP 时去掉「美国独立IP」。
-    let menu: &[&str] = if back_cn_only {
-        &["回国-自动", "所有-自动", "所有-手动", "直连", "拒绝"]
-    } else if has_indep {
+/// proxies 是完整出口菜单，默认出口（首位）由美国独立 IP 开关和服务类别决定；用户在 zashboard 里逐个切换。
+fn build_split_groups(apps: &[SplitApp], has_indep: bool) -> String {
+    // 完整出口菜单；无独立 IP 时去掉美国独立 IP。
+    let menu: &[&str] = if has_indep {
         &[
             "美国独立IP", "美国-自动", "香港-自动", "台湾-自动", "日本-自动", "新加坡-自动",
-            "韩国-自动", "回国-自动", "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
+            "韩国-自动", "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
         ]
     } else {
         &[
             "美国-自动", "香港-自动", "台湾-自动", "日本-自动", "新加坡-自动", "韩国-自动",
-            "回国-自动", "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
+            "所有-手动", "所有-自动", "直连", "其他-自动", "拒绝",
         ]
     };
     let mut groups: Vec<String> = Vec::new();
     for app in apps {
         let key = app.key.as_str();
-        // 纯回国模式：只为回国类 App 生成组；allcn 跳过（走模板 China→回国 兜底）；其余 App 忽略。
-        if back_cn_only && (!BACK_APPS.contains(&key) || key == "allcn") {
-            continue;
-        }
-        // 默认出口（首位=zashboard 导入后默认选中）：纯回国一律回国-自动，否则按 default_exit 固定映射。
-        let primary: &str = if back_cn_only { "回国-自动" } else { default_exit(key, has_indep) };
+        // International exchanges retain their Taiwan route; taiwan::lock_groups
+        // additionally pins them to the residential exit when configured.
+        let primary = if taiwan::is_exchange(key) {
+            "台湾-自动"
+        } else if app.relay && has_indep {
+            "美国独立IP"
+        } else {
+            default_exit(key, false)
+        };
         let mut proxies: Vec<&str> = vec![primary];
         for &p in menu {
             if p != primary {
@@ -1048,6 +950,22 @@ fn yaml_dq(s: &str) -> String {
 // ---------- 校验（设计 §6.1 校验清单）----------
 
 fn validate_input(input: &GenerateInput) -> Result<(), String> {
+    custom::validate(input)?;
+    if input.exchange_only && input.taiwan_node.is_none() {
+        return Err("交易所专用模式需要填写台湾独立家宽代理。".into());
+    }
+    if input.target == ConfigTarget::Nikki && !input.dns_override {
+        return Err("路由器版需要开启 DNS；请在路由器插件中配合配置 DNS 劫持。".into());
+    }
+    forbid_controls(&input.controller_secret, "控制接口密钥")?;
+    if let Some(n) = &input.taiwan_node {
+        if n.name != taiwan::NODE_NAME || n.dialer_proxy != taiwan::UPSTREAM {
+            return Err("台湾家宽节点名称 / 上游不匹配，请使用台湾独立IP与台湾-中转。".into());
+        }
+        if !input.split_apps.iter().any(|a| taiwan::is_exchange(&a.key)) {
+            return Err("启用台湾家宽时，请至少选择一个国际交易所。".into());
+        }
+    }
     if input.airports.is_empty() {
         return Err("至少需要一个机场订阅。".into());
     }
@@ -1072,7 +990,7 @@ fn validate_input(input: &GenerateInput) -> Result<(), String> {
     }
 
     // 独立 IP 可选（用户可关掉开关、直接走机场）。为空则跳过下面的逐项校验。
-    for (i, n) in input.independent_nodes.iter().enumerate() {
+    for (i, n) in input.independent_nodes.iter().chain(input.taiwan_node.iter()).enumerate() {
         let idx = i + 1;
         let proto = n.protocol.trim();
         if proto != "socks5" && proto != "http" {
@@ -1103,6 +1021,9 @@ fn validate_input(input: &GenerateInput) -> Result<(), String> {
 
     // 分流 APP 组名校验：组名同时用作策略组名 + 规则目标，禁止破坏 YAML/规则的字符。
     for app in &input.split_apps {
+        if icon_domain(&app.key).is_none() {
+            return Err(format!("不支持的分流项目：{}。请使用当前版本的分流列表。", app.key));
+        }
         let name = app.name.trim();
         if name.is_empty() {
             return Err(format!("分流 APP「{}」的策略组名为空。", app.key));
@@ -1144,8 +1065,10 @@ fn post_validate(yaml: &str) -> Result<(), String> {
             return Err(format!("注入失败：锚点「{token}」未被替换（模板可能损坏）。"));
         }
     }
-    serde_yaml::from_str::<serde_yaml::Value>(yaml)
-        .map_err(|e| format!("注入后 yaml 语法异常：{e}"))?;
+    let mut value = serde_yaml::from_str::<serde_yaml::Value>(yaml)
+        .map_err(|e| format!("注入后 YAML 语法异常（位置 {:?}），请检查名称和输入格式。", e.location().map(|p| (p.line(), p.column()))))?;
+    value.apply_merge().map_err(|e| format!("YAML 锚点错误：{e}"))?;
+    profiles::validate_graph(&value)?;
     Ok(())
 }
 
@@ -1304,8 +1227,12 @@ mod tests {
                 dialer_proxy: "美国-自动".into(),
             }],
             split_apps: vec![],
-            back_cn_only: false,
             dns_override: true,
+            target: ConfigTarget::Pc,
+            taiwan_node: None,
+            exchange_only: false,
+            controller_secret: String::new(),
+            custom_groups: vec![],
         }
     }
 
@@ -1328,15 +1255,6 @@ mod tests {
         assert!(n.contains("tun:\n  enable: true"), "tun 段的 enable 不能被误改");
     }
 
-    #[test]
-    fn dns_override_off_works_in_backcn_mode() {
-        let mut s = sample();
-        s.back_cn_only = true;
-        s.independent_nodes = vec![];
-        s.dns_override = false;
-        let y = inject(&s).unwrap();
-        assert!(!parse_dns_override(&y), "纯回国模板同样支持关闭 DNS 覆写");
-    }
 
     #[test]
     fn set_dns_enable_round_trip() {
@@ -1439,7 +1357,7 @@ mod tests {
         assert_eq!(r.mixed_port, 7893);
         assert_eq!(r.proxy_endpoint, "http://127.0.0.1:7893");
         assert_eq!(r.clash_api_url, "http://127.0.0.1:9090");
-        assert_eq!(r.clash_secret, "123456");
+        assert_eq!(r.clash_secret, ""); // legacy API input: loopback controller, no shared default password
         assert_eq!(r.exit_basis_ip, "207.97.137.112");
     }
 
@@ -1572,8 +1490,8 @@ mod tests {
             SplitApp { key: "microsoft".into(), name: "Microsoft".into(), relay: false },
             SplitApp { key: "google".into(), name: "Google".into(), relay: false },
             SplitApp { key: "steam".into(), name: "Steam".into(), relay: false },
-            SplitApp { key: "tiktok".into(), name: "TikTok".into(), relay: false },
-            SplitApp { key: "coinbase".into(), name: "Coinbase".into(), relay: false },
+            SplitApp { key: "tiktok".into(), name: "TikTok".into(), relay: true },
+            SplitApp { key: "coinbase".into(), name: "Coinbase".into(), relay: true },
             SplitApp { key: "okx".into(), name: "OKX 欧易".into(), relay: false },
         ];
         let y = inject(&s).unwrap();
@@ -1668,103 +1586,6 @@ mod tests {
         serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
     }
 
-    #[test]
-    fn back_china_split_routes_to_back_group() {
-        // 回国分流：国内 App 默认出口=回国-自动；规则用 DOMAIN-SUFFIX 指向该 APP 自己的组。
-        let mut s = sample();
-        s.split_apps = vec![
-            SplitApp { key: "bilibili".into(), name: "哔哩哔哩".into(), relay: false },
-            SplitApp { key: "netease".into(), name: "网易云音乐".into(), relay: false },
-        ];
-        let y = inject(&s).unwrap();
-        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://icon.horse/icon/bilibili.com\", proxies: [回国-自动,"));
-        assert!(y.contains("- DOMAIN-SUFFIX,bilibili.com,哔哩哔哩"));
-        assert!(y.contains("name: \"网易云音乐\", type: select, icon: \"https://icon.horse/icon/music.163.com\", proxies: [回国-自动,"));
-        assert!(y.contains("- DOMAIN-SUFFIX,music.163.com,网易云音乐"));
-        // 模板含回国-自动地区组（include-all 聚回国机场节点）。
-        assert!(y.contains("name: 回国-自动,"));
-        // bilibili 域名规则必须排在 China 兜底之前，否则被 China→国内→直连 抢走。
-        let pos_bili = y.find("DOMAIN-SUFFIX,bilibili.com,哔哩哔哩").unwrap();
-        let pos_china = y.find("RULE-SET,China / Domain,国内").unwrap();
-        assert!(pos_bili < pos_china, "国内 App 规则应排在 China 兜底之前");
-        serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
-    }
 
-    #[test]
-    fn back_china_extra_apps_and_allcn() {
-        // 第二批回国 App + 「全部国内网站」可选项（geosite CN + GeoIP CN → 回国组）。
-        let mut s = sample();
-        s.split_apps = vec![
-            SplitApp { key: "xiaohongshu".into(), name: "小红书".into(), relay: false },
-            SplitApp { key: "qq".into(), name: "QQ".into(), relay: false },
-            SplitApp { key: "allcn".into(), name: "全部国内网站".into(), relay: false },
-        ];
-        let y = inject(&s).unwrap();
-        // 小红书：默认回国-自动 + 图标 + 规则。
-        assert!(y.contains("name: \"小红书\", type: select, icon: \"https://icon.horse/icon/xiaohongshu.com\", proxies: [回国-自动,"));
-        assert!(y.contains("- DOMAIN-SUFFIX,xiaohongshu.com,小红书"));
-        // QQ：qq.com 较广，但 qqmusic/qqvideo/weread 未在本用例不影响；规则存在即可。
-        assert!(y.contains("- DOMAIN-SUFFIX,qq.com,QQ"));
-        // 全部国内网站：无图标的 select 组 + 复用 China 规则集指向该组。
-        assert!(y.contains("name: \"全部国内网站\", type: select, proxies: [回国-自动,"));
-        assert!(y.contains("- RULE-SET,China / Domain,全部国内网站"));
-        assert!(y.contains("- RULE-SET,China / IP,全部国内网站,no-resolve"));
-        // allcn 的 China 规则必须排在底部 China→国内 之前，否则被国内→直连抢走。
-        let pos_top = y.find("RULE-SET,China / Domain,全部国内网站").unwrap();
-        let pos_bottom = y.find("RULE-SET,China / Domain,国内").unwrap();
-        assert!(pos_top < pos_bottom, "全部国内网站规则应排在 China 兜底之前");
-        serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
-    }
 
-    #[test]
-    fn back_cn_only_mode_strips_proxy_groups_and_routes_china() {
-        // 纯回国模式：用专属模板，去掉翻墙地区组；国内→回国、其余→直连。
-        let mut s = sample();
-        s.back_cn_only = true;
-        s.independent_nodes = vec![]; // 纯回国无独立IP
-        s.split_apps = vec![
-            SplitApp { key: "bilibili".into(), name: "哔哩哔哩".into(), relay: false },
-            // 国外 App 与 allcn 在纯回国模式应被忽略（不生成组/规则）。
-            SplitApp { key: "youtube".into(), name: "YouTube".into(), relay: false },
-            SplitApp { key: "allcn".into(), name: "全部国内网站".into(), relay: false },
-        ];
-        let y = inject(&s).unwrap();
-        // 翻墙地区组 / 独立IP 一律不存在。
-        assert!(!y.contains("香港-自动"), "纯回国不应出现香港-自动");
-        assert!(!y.contains("美国-自动"), "纯回国不应出现美国-自动");
-        assert!(!y.contains("美国独立IP"), "纯回国不应出现美国独立IP");
-        // 保留回国主组 + 回国-自动 + Test（手动测线路用，菜单仅纯回国出口）。
-        assert!(y.contains("{name: 回国, type: select"));
-        assert!(y.contains("name: 回国-自动,"));
-        assert!(y.contains("{name: Test, type: select, proxies: [回国-自动, 所有-自动, 所有-手动, 直连, 拒绝]}"));
-        assert!(y.contains("- RULE-SET,TEST / Domain,Test"));
-        // bilibili 生成回国 App 组（纯回国菜单：回国-自动, 所有-自动, 直连, 拒绝）+ 规则。
-        assert!(y.contains("name: \"哔哩哔哩\", type: select, icon: \"https://icon.horse/icon/bilibili.com\", proxies: [回国-自动, 所有-自动, 所有-手动, 直连, 拒绝]"));
-        assert!(y.contains("- DOMAIN-SUFFIX,bilibili.com,哔哩哔哩"));
-        // 国外 App（youtube）与 allcn 被忽略：无对应组/规则。
-        assert!(!y.contains("\"YouTube\""), "纯回国应忽略国外 App YouTube");
-        assert!(!y.contains("Youtube / Domain"), "纯回国应忽略 YouTube 规则");
-        assert!(!y.contains("\"全部国内网站\""), "纯回国应忽略 allcn 组");
-        // 拦 B站 QUIC（逼走 TCP，修复 App 重启地区检查泄漏）。
-        assert!(y.contains("- AND,((NETWORK,UDP),(DOMAIN-SUFFIX,bilibili.com)),REJECT-DROP"));
-        // FakeLocation：拦 httpdns（逼 App 回退正常 DNS）+ 国内 App 域名/IP → 回国。
-        assert!(y.contains("- DOMAIN-KEYWORD,httpdns,REJECT-DROP"));
-        assert!(y.contains("- DOMAIN-SUFFIX,snssdk.com,回国"));
-        assert!(y.contains("- DOMAIN-SUFFIX,sinaimg.cn,回国"));
-        // B站番剧解锁补全：api.biliapi.com(.com 后缀)。
-        assert!(y.contains("- DOMAIN-SUFFIX,biliapi.com,回国"));
-        // 国内云盘（阿里云盘/百度网盘/腾讯微云）→ 回国。
-        assert!(y.contains("- DOMAIN-SUFFIX,pan.baidu.com,回国"));
-        assert!(y.contains("- DOMAIN-SUFFIX,aliyundrive.com,回国"));
-        assert!(y.contains("- DOMAIN-SUFFIX,weiyun.com,回国"));
-        // 全部国内 → 回国；其余直连兜底。
-        assert!(y.contains("- RULE-SET,China / Domain,回国"));
-        assert!(y.contains("- RULE-SET,China / IP,回国,no-resolve"));
-        assert!(y.contains("- MATCH,直连"));
-        // 回国-自动 不再按「回国/电信」关键词筛、也无 exclude-filter（否则会误杀以接入国家命名的回国节点，
-        // 如「US 美国中转」）。只 include-all 全收、排除 直连/拒绝。
-        assert!(!y.contains("exclude-filter"), "纯回国回国-自动不应带 exclude-filter（会误杀以接入国家命名的回国节点）");
-        assert!(y.contains("name: 回国-自动,") && y.contains("filter: \"^((?!(直连|拒绝)).)*$\""));
-        serde_yaml::from_str::<serde_yaml::Value>(&y).expect("纯回国注入后应为合法 yaml");
-    }
 }

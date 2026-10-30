@@ -1,0 +1,45 @@
+name: build-web
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ferry-core
+            ferry-wasm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --version 0.13.1 --locked
+      - name: Test YAML editor and browser drafts
+        run: npm run test:editor
+      - name: Test generation core
+        run: cargo test --manifest-path ferry-core/Cargo.toml --locked
+      - name: Build website
+        run: npm run build:web
+      - name: Upload static website
+        uses: actions/upload-artifact@v4
+        with:
+          name: ferrylite-web
+          path: dist-web/
+          if-no-files-found: error

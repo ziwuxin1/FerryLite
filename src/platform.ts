@@ -6,7 +6,7 @@
 import type { GenerateInput, GenerateResult } from "./api";
 
 export interface Platform {
-  /** desktop=Tauri 桌面版（可体检/启停）；web=纯静态网页版（只生成配置，数据不出浏览器）。 */
+  /** desktop=Tauri 桌面版（保存 YAML 到文件）；web=纯静态网页版（只生成配置，数据不出浏览器）。 */
   readonly kind: "desktop" | "web";
   /** 生成成品配置。桌面版走 tauri invoke，网页版走 WASM，底层都是 ferry-core。 */
   generateConfig(input: GenerateInput): Promise<GenerateResult>;

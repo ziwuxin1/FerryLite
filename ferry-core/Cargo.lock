@@ -10,7 +10,7 @@ checksum = "00d174d5400e5e8fd687ad1049e2f578285fa914201b1af7e8b112a4546bd826"
 
 [[package]]
 name = "ferry-core"
-version = "1.2.11"
+version = "1.4.3"
 dependencies = [
  "serde",
  "serde_yaml",

@@ -41,7 +41,7 @@ export const webPlatform: Platform = {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    return `已下载 ${result.suggestedFileName}（本地混合端口 ${result.mixedPort}）。把它导入你的 Clash 客户端即可。`;
+    return `已下载 ${result.suggestedFileName}。\n${result.instructions}`;
   },
 };
 

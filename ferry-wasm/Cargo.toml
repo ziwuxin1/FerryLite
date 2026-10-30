@@ -1,6 +1,6 @@
 [package]
 name = "ferry-wasm"
-version = "1.2.11"
+version = "1.4.3"
 description = "ferry-core 的 WASM 包装 —— 给网页版用，不含任何业务逻辑"
 authors = ["ziwuxin1"]
 edition = "2021"

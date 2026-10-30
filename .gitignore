@@ -45,3 +45,14 @@ app-icon-source.png
 
 # 构建日志
 *.log
+
+# Local browser QA artifacts (synthetic credentials only)
+.playwright-mcp/
+/artifacts/
+
+# Local releases and credentials
+/Ferry-[0-9]*/
+/Ferry-*-SHA256.txt
+.env
+.env.*
+!.env.example

@@ -4,7 +4,6 @@ import { defineConfig } from "vite";
 // 所以 root 设在 web/ 并放开上级目录访问。产物是能丢到任何静态托管的一堆文件。
 export default defineConfig({
   root: "web",
-  // 相对路径：挂在 maxsacademy.com 根目录或任意子路径（/ferry/）都能跑。
   base: "./",
   server: {
     port: 1430,

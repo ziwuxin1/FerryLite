@@ -37,3 +37,29 @@
   color: var(--yellow);
   margin-left: 8px;
 }
+
+[hidden] { display: none !important; }
+.yaml-source-editor { border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; background: #fff; }
+.editor-domain-list { max-height: 280px; overflow: auto; margin: 12px 0; }
+.editor-rule-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid #ddd; }
+.editor-rule-row > span:nth-child(2) { flex: 1; overflow-wrap: anywhere; }
+.site-badge { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--yellow); font-weight: 700; }
+textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: 12px; border: 2px solid var(--ink); border-radius: 8px; font: inherit; }
+.status-line { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 600px) {
+  #app { padding: 16px 16px 32px; }
+  .topbar.brand { margin-top: -16px; padding: 16px; }
+  .brand-name { font-size: 29px; }
+  .brand-sep { display: block; margin: 6px 0 0; font-size: 14px; }
+  .row-2 { grid-template-columns: minmax(0, 1fr); }
+  .card { padding: 16px; }
+  input, select { min-width: 0; }
+  .field-hint, .status-line { overflow-wrap: anywhere; }
+}
+/* Inline domain management in the generator. */
+.group-domain-manager { margin: 14px 0; padding: 16px; border: 2px solid #161616; border-radius: 8px; background: #fffdf7; }
+.group-domain-manager textarea { width: 100%; box-sizing: border-box; margin: 12px 0; padding: 10px; font: inherit; border: 2px solid #161616; border-radius: 8px; }
+.group-domain-list { max-height: 340px; overflow: auto; margin: 12px 0; }
+.group-domain-list img { flex: 0 0 24px; }
+.group-domain-list .editor-rule-row { overflow-wrap: anywhere; flex-wrap: wrap; }

@@ -22,16 +22,22 @@ export interface Airport {
 }
 
 export interface GenerateInput {
+  target?: "pc" | "nikki";
+  taiwanNode?: IndependentNodeInput | null;
+  exchangeOnly?: boolean;
+  controllerSecret?: string;
   airports: Airport[];
   independentNodes: IndependentNodeInput[];
   splitApps: { key: string; relay: boolean; name: string }[];
-  /** 纯回国模式：国内→回国节点、其余→直连，去掉翻墙地区组（给 OpenClash 用）。 */
-  backCnOnly?: boolean;
+  customGroups?: { name: string; domains: string[]; country: string; exact: boolean }[];
   /** DNS 覆写开关（默认 true）：false=生成的 dns.enable: false（机场公告要求关闭时用）。 */
   dnsOverride?: boolean;
 }
 
 export interface GenerateResult {
+  target: "pc" | "nikki";
+  exportOnly: boolean;
+  instructions: string;
   yaml: string;
   mixedPort: number;
   proxyEndpoint: string;
@@ -41,86 +47,7 @@ export interface GenerateResult {
   suggestedFileName: string;
 }
 
-export interface SaveInput {
-  path: string;
-  yaml: string;
-  exitBasisIp: string;
-  proxyEndpoint: string;
-  clashApiUrl: string;
-  clashSecret: string;
-  lastUpdated: string;
-  claudeCodeCommand?: string;
-}
-
-export interface ClashApi {
-  url: string;
-  secret: string;
-}
-
-export interface AirportInfo {
-  name: string;
-  url: string;
-}
-
-export interface NodeInfo {
-  name: string;
-  server: string;
-  protocol: string;
-  port: string;
-}
-
-export interface AppConfig {
-  version: number;
-  exitBasisIp: string;
-  proxyEndpoint: string;
-  clashApi: ClashApi;
-  generatedYamlPath: string;
-  airports: AirportInfo[];
-  nodes: NodeInfo[];
-  claudeCodeCommand: string;
-  claudeDesktopProcess: string;
-  claudeDesktopPath?: string | null;
-  /** DNS 覆写状态（成品 yaml 里 dns.enable 的值）。 */
-  dnsOverride: boolean;
-  lastUpdated: string;
-}
-
-export interface ExitIpReport {
-  matched: boolean;
-  echoIp: string;
-  basisIp: string;
-  source: string;
-  message: string;
-  proxyEndpoint: string;
-}
-
-export interface LinkHealthReport {
-  total: number;
-  success: number;
-  avgLatencyMs: number | null;
-  message: string;
-}
-
-export interface ShutdownReport {
-  cliKilled: boolean;
-  desktopKilled: boolean;
-  details: string[];
-}
-
 export const api = {
-  loadTemplate: () => invoke<string>("load_template"),
   generateConfig: (input: GenerateInput) => invoke<GenerateResult>("generate_config", { input }),
-  saveGenerated: (input: SaveInput) => invoke<AppConfig>("save_generated", { input }),
-  readAppConfig: () => invoke<AppConfig | null>("read_app_config"),
-  importYaml: (path: string, lastUpdated: string) =>
-    invoke<AppConfig>("import_yaml", { path, lastUpdated }),
-  clearConfig: () => invoke<void>("clear_config"),
-  setDnsOverride: (enable: boolean) => invoke<AppConfig>("set_dns_override", { enable }),
-  setExitBasis: (ip: string) => invoke<AppConfig>("set_exit_basis", { ip }),
-  checkClash: () => invoke<string>("check_clash"),
-  verifyExitIp: () => invoke<ExitIpReport>("verify_exit_ip"),
-  linkHealth: () => invoke<LinkHealthReport>("link_health"),
-  launchClaudeCode: () => invoke<number>("launch_claude_code"),
-  launchClaudeDesktop: () => invoke<void>("launch_claude_desktop"),
-  safeShutdown: () => invoke<ShutdownReport>("safe_shutdown"),
+  exportConfig: (path: string, yaml: string) => invoke<void>("export_config", { path, yaml }),
 };

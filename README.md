@@ -1,66 +1,40 @@
-<div align="center">
+# Ferry · YAML configuration generator
 
-<img src="assets/logo.png" alt="Ferry" width="116" />
+Ferry and its browser edition **FerryLite** share this repository. Generate and edit Clash YAML profiles for Windows / macOS / Linux clients and routers running Mihomo / Clash Meta, including OpenClash and Nikki.
 
-# Ferry
+**Use the website: [ferrylite.cc](https://ferrylite.cc/)** · [Web build guide](web/README.md)
 
-**Smart split‑routing built for going back to China — handle urgent US matters with ease.**
+The browser edition processes subscriptions and proxy credentials locally using WASM. The desktop app opens directly to the generation form.
 
-专为回国设计的智能分流，稳稳处理美国急事
+[中文](README.zh-CN.md) · [Usage guide](doc/Ferry-1.4.3-使用说明.md)
 
-![version](https://img.shields.io/badge/version-1.1.2-ff5c8a)
-![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)
-![framework](https://img.shields.io/badge/framework-Tauri%202-24C8DB)
-![stack](https://img.shields.io/badge/stack-Rust%20%2B%20TS-f74c00)
-![license](https://img.shields.io/badge/license-MIT-22c55e)
+## Features
 
-English · [中文](README.zh-CN.md)
+- Separate desktop and router TUN, DNS and listener settings.
+- US upstream to US residential proxy; Taiwan upstream to Taiwan residential proxy for selected exchanges.
+- Built-in ofiii routing and per-app proxy groups.
+- SOCKS share-link import.
+- Browser YAML import, source preview/editing, validation and safe corrections.
+- Custom groups, per-site domain management, service-specific domain completion and logos.
+- Browser routing drafts and Reset; credentials and subscription URLs are not saved in drafts.
+- Generation and export only: no dashboard, health checks, Claude process controls or background tray.
 
-</div>
+Import output into your client and verify overrides and routing. Taiwan residential profiles require selecting a Taiwan upstream on first use.
 
----
+## Build
 
-**Ferry** helps people back in China reliably reach **Claude** and US‑only services (banks, brokerages, insurance, government portals…) with low ban risk — by chaining your traffic through a clean US **residential** IP.
+Requires Node.js 22 and Rust; desktop builds require Windows. Web builds also require wasm-pack and the wasm32-unknown-unknown target. See the web build guide for setup.
 
-```text
-Your PC → ClashMi (local proxy, TUN) → airport US node → US residential static IP (clean exit) → target
-Before launch, Ferry measures the real exit IP through the Claude‑group path and only proceeds when it matches your baseline IP.
-```
+- npm ci
+- npm run tauri build
+- npm run build:web
+- npm run test:editor
+- cargo test --manifest-path ferry-core/Cargo.toml
 
-## ✨ Features
+Desktop releases are portable EXE only; installer generation is disabled. Desktop output: src-tauri/target/release/; web output: dist-web/.
 
-- **Per‑app split routing** — every app (Claude, banks, brokerages, streaming, dev tools, Parsec…) becomes its own selectable proxy group; switch each exit independently in zashboard.
-- **One‑click health check** — verifies the Clash API, that the real exit IP == your baseline, and link latency / stability.
-- **Exit‑IP calibration** — residential gateways often have a domain ≠ the real exit IP; one click sets the echoed IP as the baseline.
-- **Share‑link import** — paste a `socks://` link and it auto‑fills server / port / username / password.
-- **Launch & safe‑stop Claude** — CLI, desktop app, or web, with a clean shutdown that only kills Claude (never your browser or ClashMi).
+Both versions share ferry-core. Exported YAML contains credentials and should be stored privately.
 
-## ⬇️ Download
-
-Grab the latest build from [**Releases**](../../releases/latest):
-
-| File | Use |
-|---|---|
-| `Ferry-x.y.z.exe` | **Single‑file portable** — just double‑click (needs WebView2, built into Windows 10/11). |
-| `Ferry-x.y.z-setup.exe` | Installer with a Start‑menu shortcut. |
-
-## 🔧 Build from source
-
-Requirements: Node 18+, Rust (stable), Windows.
-
-```powershell
-npm install
-npm run tauri build   # → src-tauri/target/release/  (portable exe + NSIS installer)
-```
-
-## 🧱 How it works
-
-A single Tauri `.exe` (Rust backend + vanilla TypeScript frontend):
-
-- **Config generator** injects your airport subscription + residential‑IP node into a Clash template via text anchors (never `load→dump`, so comments & anchors survive), producing a ready‑to‑import `yaml`.
-- **Dashboard** runs the pre‑launch health check, then starts / safely stops Claude.
-- Routing is rule‑based with one selectable group per app, so you choose each exit (US residential / airport US / HK / TW / …) in zashboard.
-
-## 📄 License
+Repository layout: `web/` contains the website, `src/` the shared forms and YAML editing code, `ferry-core/` the Rust generation engine, `ferry-wasm/` its browser binding, and `src-tauri/` the desktop shell. GitHub Actions builds a static `ferrylite-web` artifact; publishing the production site is a separate step.
 
 [MIT](LICENSE) © ziwuxin1

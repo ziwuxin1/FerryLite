@@ -1,12 +1,12 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "主窗口默认权限：核心 + 文件保存对话框 + 打开外部链接。",
-  "windows": ["main"],
+  "description": "主窗口权限：核心与 YAML 保存对话框。",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
-    "dialog:default",
-    "opener:default",
-    "opener:allow-open-url"
+    "dialog:allow-save"
   ]
 }

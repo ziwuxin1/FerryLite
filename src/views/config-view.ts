@@ -960,7 +960,7 @@ export function renderConfigView(root: HTMLElement): void {
   const topbar = platform().kind === "desktop" ? [
     el("div", { class: "topbar" }, [
       el("div", {}, [
-        el("h1", {}, ["Ferry · YAML 配置生成"]),
+        el("h1", {}, ["FerryLite · YAML 配置生成"]),
         el("div", { class: "sub" }, ["填写机场与独立 IP，生成后导入电脑或路由器的 Clash 客户端（Mihomo / Clash Meta 内核）。"]),
       ]),
     ]),

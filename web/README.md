@@ -2,7 +2,7 @@
 
 在线使用：https://ferrylite.cc/
 
-网页版与 Ferry 桌面版共用仓库，不需要单独安装客户端。支持配置生成、YAML 导入和源码编辑、策略组与域名管理。导出文件为 `Ferry-Desktop.yaml` 或 `Ferry-Router.yaml`。
+FerryLite 网页版与桌面版共用仓库，不需要单独安装客户端。支持配置生成、YAML 导入和源码编辑、策略组与域名管理。导出文件为 `Ferry-Desktop.yaml` 或 `Ferry-Router.yaml`。
 
 ## 本地构建
 

@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="Ferry" width="116" />
+<img src="assets/logo.png" alt="FerryLite" width="116" />
 
-# Ferry · YAML 配置生成器
+# FerryLite · YAML 配置生成器
 
 </div>
 
-Ferry 与网页版 **FerryLite（小渡）共用此仓库**，生成和编辑适用于 Windows / macOS / Linux 客户端，以及 OpenClash、Nikki 等路由器插件的 Clash YAML（需要 Mihomo / Clash Meta 内核）。
+**FerryLite（小渡）的网页版与桌面版共用此仓库**，生成和编辑适用于 Windows / macOS / Linux 客户端，以及 OpenClash、Nikki 等路由器插件的 Clash YAML（需要 Mihomo / Clash Meta 内核）。
 
 **在线使用：[ferrylite.cc](https://ferrylite.cc/)** · [网页版构建说明](web/README.md)
 

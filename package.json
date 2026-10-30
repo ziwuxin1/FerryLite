@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.4.3",
   "type": "module",
-  "description": "Ferry / FerryLite — desktop and router Clash YAML generator and editor",
+  "description": "FerryLite — desktop and router Clash YAML generator and editor",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

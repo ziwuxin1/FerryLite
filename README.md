@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="Ferry" width="116" />
+<img src="assets/logo.png" alt="FerryLite" width="116" />
 
-# Ferry · YAML configuration generator
+# FerryLite · YAML configuration generator
 
 </div>
 
-Ferry and its browser edition **FerryLite** share this repository. Generate and edit Clash YAML profiles for Windows / macOS / Linux clients and routers running Mihomo / Clash Meta, including OpenClash and Nikki.
+**FerryLite** provides browser and desktop editions in this repository. Generate and edit Clash YAML profiles for Windows / macOS / Linux clients and routers running Mihomo / Clash Meta, including OpenClash and Nikki.
 
 **Use the website: [ferrylite.cc](https://ferrylite.cc/)** · [Web build guide](web/README.md)
 

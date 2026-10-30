@@ -1,7 +1,7 @@
 [package]
 name = "claude-launcher"
 version = "1.4.3"
-description = "Ferry — PC / Nikki YAML 配置生成"
+description = "FerryLite — 电脑 / 路由器 YAML 配置生成"
 authors = ["ziwuxin1"]
 edition = "2021"
 rust-version = "1.77.2"

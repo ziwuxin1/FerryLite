@@ -1,7 +1,7 @@
 {
   "name": "claude-launcher",
   "private": true,
-  "version": "1.4.3",
+  "version": "1.5.0",
   "type": "module",
   "description": "FerryLite — desktop and router Clash YAML generator and editor",
   "scripts": {

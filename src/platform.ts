@@ -12,6 +12,8 @@ export interface Platform {
   generateConfig(input: GenerateInput): Promise<GenerateResult>;
   /** 落地成品。返回给用户看的成功提示文案；null = 用户主动取消。 */
   saveResult(result: GenerateResult): Promise<string | null>;
+  /** Save imported/edited YAML using this platform's file UI. */
+  saveYaml(source: string, filename: string): Promise<string | null>;
 }
 
 let current: Platform | null = null;

@@ -323,7 +323,7 @@ dependencies = [
 
 [[package]]
 name = "claude-launcher"
-version = "1.4.3"
+version = "1.5.0"
 dependencies = [
  "ferry-core",
  "tauri",
@@ -746,7 +746,7 @@ dependencies = [
 
 [[package]]
 name = "ferry-core"
-version = "1.4.3"
+version = "1.5.0"
 dependencies = [
  "serde",
  "serde_yaml",

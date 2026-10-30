@@ -10,9 +10,9 @@
 
 **Use the website: [ferrylite.cc](https://ferrylite.cc/)** · [Web build guide](web/README.md)
 
-The browser edition processes subscriptions and proxy credentials locally using WASM. The desktop app opens directly to the generation form.
+The browser edition processes subscriptions and proxy credentials locally using WASM. The desktop edition uses the same interface and YAML editor, with native Save As dialogs.
 
-[中文](README.zh-CN.md) · [Usage guide](doc/Ferry-1.4.3-使用说明.md)
+[中文](README.zh-CN.md) · [1.5.0 usage guide](doc/FerryLite-1.5.0-使用说明.md) · [Portable Windows download](https://github.com/ziwuxin1/FerryLite/releases/latest)
 
 ## Features
 
@@ -20,9 +20,9 @@ The browser edition processes subscriptions and proxy credentials locally using 
 - US upstream to US residential proxy; Taiwan upstream to Taiwan residential proxy for selected exchanges.
 - Built-in ofiii routing and per-app proxy groups.
 - SOCKS share-link import.
-- Browser YAML import, source preview/editing, validation and safe corrections.
+- YAML import, source preview/editing, validation and safe corrections in both editions.
 - Custom groups, per-site domain management, service-specific domain completion and logos.
-- Browser routing drafts and Reset; credentials and subscription URLs are not saved in drafts.
+- Local routing drafts and Reset; credentials and subscription URLs are not saved in drafts.
 - Generation and export only: no dashboard, health checks, Claude process controls or background tray.
 
 Import output into your client and verify overrides and routing. Taiwan residential profiles require selecting a Taiwan upstream on first use.

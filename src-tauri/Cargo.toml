@@ -1,6 +1,6 @@
 [package]
 name = "claude-launcher"
-version = "1.4.3"
+version = "1.5.0"
 description = "FerryLite — 电脑 / 路由器 YAML 配置生成"
 authors = ["ziwuxin1"]
 edition = "2021"

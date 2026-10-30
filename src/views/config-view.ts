@@ -731,7 +731,7 @@ export function renderConfigView(root: HTMLElement): void {
   ]);
 
   const submit = el("button", { class: "btn primary block", onclick: onSubmit }, [
-    platform().kind === "desktop" ? "生成配置并另存为 .yaml" : "生成并预览 YAML",
+    "生成并预览 YAML",
   ]) as HTMLButtonElement;
   let editableResult: { yaml: string; filename: string } | null = null;
   let generatedResult: GenerateResult | null = null;
@@ -768,8 +768,9 @@ export function renderConfigView(root: HTMLElement): void {
       if (!exportIsCurrent() || result.target !== target.value) return;
       const done = await platform().saveResult(result);
       if (done) previewMessage(`✅ ${done}`);
-    } catch (e) { previewMessage(`下载失败：${(e as Error).message}`, true); }
-  } }, ["下载此 YAML"]) as HTMLButtonElement;
+      else previewMessage("已取消保存，编辑内容仍保留。");
+    } catch (e) { previewMessage(`保存失败：${(e as Error).message}`, true); }
+  } }, [platform().kind === "desktop" ? "另存 YAML" : "下载此 YAML"]) as HTMLButtonElement;
   const copyYaml = el("button", { class: "btn", onclick: async () => {
     if (!generatedResult || !exportIsCurrent()) return;
     try { await navigator.clipboard.writeText(generatedResult.yaml); previewMessage("已复制当前完整 YAML（包含代码修改）。"); }
@@ -782,7 +783,8 @@ export function renderConfigView(root: HTMLElement): void {
       ? `配置已更改，当前导出为${label}。请重新点击「生成并预览 YAML」，旧预览暂不可下载。`
       : "";
     downloadYaml.disabled = copyYaml.disabled = editGenerated.disabled = !exportIsCurrent();
-    downloadYaml.textContent = stale ? "请先重新生成 YAML" : generatedResult ? `下载 ${generatedResult.suggestedFileName}` : "下载此 YAML";
+    const saveLabel = platform().kind === "desktop" ? "另存" : "下载";
+    downloadYaml.textContent = stale ? "请先重新生成 YAML" : generatedResult ? `${saveLabel} ${generatedResult.suggestedFileName}` : `${saveLabel} YAML`;
     if (stale) previewMessage(targetNotice.textContent, true);
   };
   const previewCard = el("div", { class: "card", style: "display:none" }, [
@@ -875,7 +877,7 @@ export function renderConfigView(root: HTMLElement): void {
       pendingGroup.name.focus({ preventScroll: true });
       return;
     }
-    if (platform().kind === "web" && generatedResult && generatedResult.yaml !== generatedSource && !window.confirm("重新生成将替换当前修改过的 YAML。是否继续？")) return;
+    if (generatedResult && generatedResult.yaml !== generatedSource && !window.confirm("重新生成将替换当前修改过的 YAML。是否继续？")) return;
     submit.disabled = true;
     setStatus("正在生成与校验…");
     try {
@@ -886,34 +888,21 @@ export function renderConfigView(root: HTMLElement): void {
       generatedSource = result.yaml;
       editableResult = { yaml: result.yaml, filename: result.suggestedFileName };
       editGenerated.disabled = false;
-      if (platform().kind === "web") {
-        previewCard.style.display = "";
-        updateSource(result.yaml);
-        if (preview) preview.setSource(result.yaml);
-        else {
-          const fallback = el("textarea", { "aria-label": "YAML 预览与编辑", spellcheck: "false", style: "width:100%;min-height:420px;font-family:Consolas,monospace" }) as HTMLTextAreaElement;
-          fallback.value = result.yaml;
-          fallback.oninput = () => updateSource(fallback.value);
-          previewHost.replaceChildren(fallback);
-          try { preview = (await import("./yaml-preview")).createYamlPreview(previewHost, fallback.value, updateSource); }
-          catch { /* Keep the editable textarea available when the code editor cannot load. */ }
-        }
-        setStatus("✅ 已生成并通过校验。可在下方直接预览、编辑，再下载 YAML。", "ok");
-        refreshExportState();
-        if (!exportIsCurrent()) setStatus("生成期间切换了导出版本，请重新生成当前版本。", "warn");
-        previewCard.scrollIntoView({ behavior: "smooth", block: "start" });
-        return;
+      previewCard.style.display = "";
+      updateSource(result.yaml);
+      if (preview) preview.setSource(result.yaml);
+      else {
+        const fallback = el("textarea", { "aria-label": "YAML 预览与编辑", spellcheck: "false", style: "width:100%;min-height:420px;font-family:Consolas,monospace" }) as HTMLTextAreaElement;
+        fallback.value = result.yaml;
+        fallback.oninput = () => updateSource(fallback.value);
+        previewHost.replaceChildren(fallback);
+        try { preview = (await import("./yaml-preview")).createYamlPreview(previewHost, fallback.value, updateSource); }
+        catch { /* Keep the editable textarea available when the code editor cannot load. */ }
       }
-      if (!exportIsCurrent()) { setStatus("生成期间切换了导出版本，请重新生成当前版本。", "warn"); return; }
-      setStatus("✅ 校验通过，正在落地…", "ok");
-      // 落地方式由平台决定：桌面版弹保存对话框写盘，网页版直接触发下载。
-      const done = await platform().saveResult(result);
-      if (!done) {
-        setStatus("已取消保存（配置未写入）。", "warn");
-        return;
-      }
-      setStatus("✅ " + done, "ok");
-      // Keep export and verification instructions visible; return via the header.
+      setStatus("✅ 已生成并通过校验。可在下方直接预览、编辑，再保存 YAML。", "ok");
+      refreshExportState();
+      if (!exportIsCurrent()) setStatus("生成期间切换了导出版本，请重新生成当前版本。", "warn");
+      previewCard.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       setStatus(`❌ ${e instanceof Error ? e.message : String(e)}`, "err");
     } finally {
@@ -957,17 +946,7 @@ export function renderConfigView(root: HTMLElement): void {
   enableTaiwan.onchange = updateTaiwan;
   exchangeOnly.onchange = updateTaiwan;
 
-  const topbar = platform().kind === "desktop" ? [
-    el("div", { class: "topbar" }, [
-      el("div", {}, [
-        el("h1", {}, ["FerryLite · YAML 配置生成"]),
-        el("div", { class: "sub" }, ["填写机场与独立 IP，生成后导入电脑或路由器的 Clash 客户端（Mihomo / Clash Meta 内核）。"]),
-      ]),
-    ]),
-  ] : [];
-
   const view = el("div", {}, [
-    ...topbar,
     mysteryPanel,
     storageStatus,
     el("div", { class: "btn-row", style: "justify-content:flex-end;margin-bottom:16px" }, [el("button", { type: "button", class: "btn", onclick: () => {
@@ -993,7 +972,7 @@ export function renderConfigView(root: HTMLElement): void {
     splitCard,
     customCard,
     el("div", { class: "card" }, [submit, status]),
-    ...(platform().kind === "web" ? [previewCard] : []),
+    previewCard,
   ]);
   root.append(view);
   let restoring = true;

@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -27,7 +27,10 @@ jobs:
           workspaces: src-tauri
 
       - name: Install frontend deps
-        run: npm install
+        run: npm ci
+
+      - name: Test shared YAML editor
+        run: npm run test:editor
 
       # 生成源图标 → 产出完整图标集（icons/ 不入库）。
       - name: Generate icons
@@ -43,11 +46,17 @@ jobs:
         run: cargo test --manifest-path src-tauri/Cargo.toml --no-fail-fast
 
       - name: Build portable Tauri app (no installer)
-        run: npm run tauri build
+        run: npm run tauri build -- --no-bundle
+
+      - name: Name portable release
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          Copy-Item -LiteralPath src-tauri/target/release/claude-launcher.exe -Destination "src-tauri/target/release/FerryLite-$version-windows-x64.exe"
 
       - name: Upload portable exe (免安装)
         uses: actions/upload-artifact@v4
         with:
-          name: claude-launcher-portable-exe
-          path: src-tauri/target/release/claude-launcher.exe
+          name: FerryLite-windows-x64-portable
+          path: src-tauri/target/release/FerryLite-*-windows-x64.exe
           if-no-files-found: error

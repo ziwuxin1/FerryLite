@@ -2,9 +2,10 @@ import { basicSetup, EditorView } from "codemirror";
 import { yaml } from "@codemirror/lang-yaml";
 import { autocompletion, startCompletion, type CompletionContext } from "@codemirror/autocomplete";
 import { linter, lintGutter } from "@codemirror/lint";
-import { el } from "../../src/dom";
-import { domainLogo } from "../../src/views/group-domain-manager";
-import { addSites, completeSiteDomains, inspectYaml, MAX_YAML_SIZE, normalizeDomains, readYaml, removeDomainRule, safeFix, setDefaultExit, setGroupIcon, siteSuggestion, SITES } from "../../src/yaml-editor";
+import { el } from "../dom";
+import { platform } from "../platform";
+import { domainLogo } from "./group-domain-manager";
+import { addSites, completeSiteDomains, inspectYaml, MAX_YAML_SIZE, normalizeDomains, readYaml, removeDomainRule, safeFix, setDefaultExit, setGroupIcon, siteSuggestion, SITES } from "../yaml-editor";
 
 const fields = ["proxies", "proxy-providers", "proxy-groups", "rules", "rule-providers", "dns", "tun", "mode", "mixed-port", "external-controller", "secret", "name", "type", "server", "port", "username", "password", "icon", "filter", "use", "include-all-providers", "dialer-proxy", "interval", "url", "enable", "listen", "nameserver", "enhanced-mode"];
 const ruleTypes = ["DOMAIN", "DOMAIN-SUFFIX", "DOMAIN-KEYWORD", "RULE-SET", "GEOSITE", "GEOIP", "IP-CIDR", "MATCH"];
@@ -129,13 +130,12 @@ export function renderYamlEditor(root: HTMLElement) {
     button("重新识别策略组 / 校验", () => run(() => { refreshGroups(); check(); })),
     button("安全自动纠错", () => run(() => { const result = safeFix(text()); replaceText(result.source); refreshGroups(); message(result.changes.join("\n")); })),
     button("字段与域名补全", () => { editor.focus(); startCompletion(editor); }),
-    button("下载修改后的 YAML", () => run(() => {
+    button(platform().kind === "desktop" ? "另存修改后的 YAML" : "下载修改后的 YAML", () => run(() => {
       const errors = inspectYaml(text()).filter(p => p.severity === "error");
       if (errors.length) throw new Error(`请先修正：${errors[0].message}`);
-      const url = URL.createObjectURL(new Blob([text()], { type: "text/yaml;charset=utf-8" }));
-      const a = document.createElement("a"); a.href = url; a.download = `${filename}-edited.yaml`; a.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      message(`已下载 ${filename}-edited.yaml。原文件未修改；导入客户端后检查实际策略组选择。`);
+      void platform().saveYaml(text(), `${filename}-edited.yaml`)
+        .then(done => message(done ?? "已取消保存，编辑内容仍保留。"))
+        .catch(error => message(`保存失败：${error instanceof Error ? error.message : String(error)}`, true));
     }), true),
   ]);
   root.append(

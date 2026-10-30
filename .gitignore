@@ -53,6 +53,7 @@ app-icon-source.png
 # Local releases and credentials
 /Ferry-[0-9]*/
 /Ferry-*-SHA256.txt
+/FerryLite-*-SHA256.txt
 .env
 .env.*
 !.env.example

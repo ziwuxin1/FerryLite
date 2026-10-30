@@ -31,17 +31,21 @@ export const webPlatform: Platform = {
     }
   },
 
-  async saveResult(result: GenerateResult): Promise<string | null> {
-    const blob = new Blob([result.yaml], { type: "text/yaml;charset=utf-8" });
+  async saveYaml(source, filename): Promise<string | null> {
+    const blob = new Blob([source], { type: "text/yaml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = result.suggestedFileName;
+    a.download = filename;
     document.body.append(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
-    return `已下载 ${result.suggestedFileName}。\n${result.instructions}`;
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return `已下载 ${filename}。`;
+  },
+  async saveResult(result: GenerateResult): Promise<string | null> {
+    const done = await this.saveYaml(result.yaml, result.suggestedFileName);
+    return done ? `${done}\n${result.instructions}` : null;
   },
 };
 

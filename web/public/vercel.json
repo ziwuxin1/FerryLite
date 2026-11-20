@@ -4,8 +4,12 @@
   "buildCommand": "",
   "installCommand": "",
   "redirects": [
-    { "source": "/flow", "destination": "/", "permanent": false },
-    { "source": "/flow/", "destination": "/", "permanent": false }
+    { "source": "/flow", "destination": "/app", "permanent": false },
+    { "source": "/flow/", "destination": "/app", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/app", "destination": "/index.html" },
+    { "source": "/app/", "destination": "/index.html" }
   ],
   "headers": [
     {

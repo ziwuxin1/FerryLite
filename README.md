@@ -12,7 +12,7 @@
 
 The browser edition processes subscriptions and proxy credentials locally using WASM. The desktop edition uses the same interface and YAML editor, with native Save As dialogs.
 
-[中文](README.zh-CN.md) · [1.5.0 usage guide](doc/FerryLite-1.5.0-使用说明.md) · [Portable Windows download](https://github.com/ziwuxin1/FerryLite/releases/latest)
+[中文](README.zh-CN.md) · [1.5.1 usage guide](doc/FerryLite-1.5.1-使用说明.md) · [Portable Windows download](https://github.com/ziwuxin1/FerryLite/releases/latest)
 
 ## Features
 

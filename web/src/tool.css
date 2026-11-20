@@ -1,0 +1,86 @@
+/* Web navigation lives inside the brand header, not above its negative margin. */
+.tool-page { color-scheme: light; }
+.tool-page[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #171717;
+  --panel: #222222;
+  --panel-2: #1b1b1b;
+  --ink: #eeeeee;
+  --border: #505050;
+  --divider: #404040;
+  --muted: #b0b0b0;
+  --shadow-ink: #0d0d0d;
+  --yellow-soft: #3a321d;
+  --unlock-bg: #302b20;
+  --ok: #7cdaa0;
+  --ok-bg: #20352a;
+  --warn: #f3d17b;
+  --warn-bg: #3d321c;
+  --err: #ff9c98;
+  --err-bg: #422725;
+  --code-key: #d7b9ff;
+  --code-string: #a8d6b4;
+  --code-number: #ffc998;
+  --code-keyword: #9acfff;
+  --code-comment: #a4a4a4;
+  --code-selection: #414b6b;
+  --code-active: #ffffff08;
+}
+.tool-page input:not([type="checkbox"]):not([type="radio"]),
+.tool-page textarea, .tool-page select { color: var(--ink); background-color: var(--panel-2); }
+.tool-page[data-theme="dark"] .btn.primary,
+.tool-page[data-theme="dark"] .site-badge { color: #161616; }
+.tool-page[data-theme="dark"] a:not(.tool-home-link) { color: #f5ce4d; }
+.tool-header-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.topbar.brand.web-tool-header {
+  background: #161616;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 18px;
+  padding-bottom: 18px;
+  border-bottom-width: 2px;
+}
+.web-tool-header .brand-logo { width: 40px; height: 40px; }
+.tool-brand-link { text-decoration: none; border-radius: 4px; }
+.tool-brand-link:focus-visible { outline: 2px solid var(--yellow); outline-offset: 6px; }
+.web-tool-header .brand-name { font-size: 27px; line-height: 1.1; }
+.web-tool-header .brand-sep {
+  display: block;
+  margin: 5px 0 0;
+  color: #b9b9b0;
+  font-size: 12px;
+  font-weight: 500;
+}
+.tool-home-link {
+  flex: none;
+  padding: 8px 13px;
+  border: 1px solid #53534d;
+  border-radius: 7px;
+  color: #f3f3ec;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 40px;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+.tool-theme-toggle { min-width: 76px; }
+.tool-home-link:hover { background: #30302b; border-color: #9b9b8e; }
+.tool-home-link:focus-visible { outline: 2px solid var(--yellow); outline-offset: 4px; }
+@media (max-width: 600px) {
+  .topbar.brand.web-tool-header { gap: 12px; padding-block: 15px; }
+  .web-tool-header .brand-row { gap: 8px; }
+  .web-tool-header .brand-logo { width: 34px; height: 34px; }
+  .web-tool-header .brand-name { font-size: 23px; }
+  .web-tool-header .brand-sep { font-size: 10px; }
+  .tool-home-link { font-size: 12px; padding: 8px 10px; }
+}
+@media (max-width: 420px) {
+  .topbar.brand.web-tool-header { flex-wrap: wrap; }
+  .tool-header-actions { width: 100%; justify-content: flex-end; }
+}

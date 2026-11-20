@@ -197,6 +197,7 @@ pub fn exchange_config(input: &GenerateInput) -> Result<String, String> {
     let mut output_groups = groups(input);
     let mut output_rules = rules(input);
     output_groups.push_str(&format!("\n  {}", media_groups(input)));
+    output_groups.push_str(&format!("\n  {}", crate::build_refresh_groups(&input.airports, "台湾影音-机场")));
     output_rules = format!("{}\n  {output_rules}", media_rules());
     if !input.custom_groups.is_empty() {
         output_groups.push_str(&format!("\n  {}", crate::custom::groups(input)));

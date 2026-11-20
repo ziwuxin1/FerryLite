@@ -32,7 +32,8 @@ pub fn instructions(input: &GenerateInput) -> String {
         ""
     };
     let media = "\nofiii：主站、播放器及指定 PC / 手机 / 电视 CDN 走「台湾影音」，默认机场台湾自动选择；已配置台湾家宽时可手动切换。台湾影音与交易所出口分开。";
-    format!("{target}{exchange}{media}")
+    let refresh = "\n节点全部超时：机场会更换入口，节点列表每 10 分钟自动刷新一次，直连拉不到订阅时会自动改走仍可用的节点。需要立即刷新时，在客户端或面板的「代理集合」（Proxy Providers）里点更新；客户端的「更新订阅」不会刷新它。";
+    format!("{target}{exchange}{media}{refresh}")
 }
 
 /// Text-only patches keep comments and YAML anchors intact.

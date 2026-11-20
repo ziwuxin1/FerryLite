@@ -9,6 +9,7 @@ import { SITE_CATALOG } from "../site-catalog";
 import { domainLogo } from "./site-logo";
 import { loadRoutingDraft, saveRoutingDraft, clearRoutingDraft } from "../routing-draft";
 import type { SavedCustomGroup, SavedCategorySite } from "../routing-draft";
+import { applyConfigDesign } from "./config-design";
 
 interface AirportRow {
   wrapper: HTMLElement;
@@ -16,10 +17,11 @@ interface AirportRow {
   url: HTMLInputElement;
 }
 
-export function renderConfigView(root: HTMLElement): void {
+export function renderConfigView(root: HTMLElement, guided = false): void {
   const status = el("div", { class: "status-line" });
   let exclusiveUnlocked = false;
   let persistDraft = (): void => {};
+  let refreshDesign = (): void => {};
   const storageStatus = el("div", { class: "field-hint", role: "status", "aria-live": "polite" });
   const siteRestorers = new Map<string, (sites: SavedCategorySite[]) => Promise<void>>();
 
@@ -82,6 +84,7 @@ export function renderConfigView(root: HTMLElement): void {
     targetHint.textContent = nikki
       ? "导出 Ferry-Router.yaml：适用于 OpenClash、Nikki 等支持 Mihomo / Clash Meta 配置的路由器插件。导入后由插件管理路由、防火墙和 DNS 劫持，并检查运行模式与覆写设置。"
       : "导出 Ferry-Desktop.yaml：适用于 Windows、macOS、Linux 上支持 Mihomo / Clash Meta 配置的 Clash 客户端。导入后按需启用系统代理或 TUN，并检查客户端覆写设置。";
+    refreshDesign();
   };
   target.onchange = () => { updateTarget(); targetRevision++; refreshExportState(); };
   updateTarget();
@@ -163,7 +166,8 @@ export function renderConfigView(root: HTMLElement): void {
     ]),
   ]);
   enableIndep.onchange = (): void => {
-    indepBody.style.display = enableIndep.checked ? "" : "none";
+    if (!guided) indepBody.style.display = enableIndep.checked ? "" : "none";
+    refreshDesign();
     updateUsRelay(true);
   };
   indepBody.style.display = "none"; // 初始与「默认不启用」一致
@@ -245,7 +249,10 @@ export function renderConfigView(root: HTMLElement): void {
         { key: "bitget", label: "Bitget", on: true, relay: false },
       ],
     },
-    { cat: "Perforce（默认走机场）", apps: [{ key: "perforce", label: "Perforce 服务器", on: true, relay: false }] },
+    { cat: "Perforce（默认走机场）", apps: [
+      { key: "perforce", label: "Perforce 美国（默认美国自动）", on: true, relay: false },
+      { key: "perforce_hk", label: "Perforce 香港（默认香港自动）", on: false, relay: false },
+    ] },
     { cat: "Parsec（远程桌面 / 串流 · 无需独立家宽 IP）", apps: [{ key: "parsec", label: "Parsec 远程桌面", on: true, relay: false }] },
     {
       cat: "社交（默认不选美国独立 IP · 内容向）",
@@ -403,7 +410,7 @@ export function renderConfigView(root: HTMLElement): void {
   const categorySites: CategorySite[] = [];
   // 各分类「全选」框的刷新器：全局全选/反选后调用，让分类框跟随。
   const catAllUpdaters: (() => void)[] = [];
-  const splitSections = APP_CATALOG.map((c) => {
+  const splitSections = APP_CATALOG.map((c, categoryIndex) => {
     const inner = el("div", { class: "acc-inner" });
     const catOns: HTMLInputElement[] = [];
     for (const a of c.apps) {
@@ -426,7 +433,7 @@ export function renderConfigView(root: HTMLElement): void {
         finally { manageButton.disabled = false; }
       } }, ["管理域名"]) as HTMLButtonElement;
       const on = el("input", { type: "checkbox" }) as HTMLInputElement;
-      on.checked = a.on && canIncludeApp(a.key, exclusiveUnlocked);
+      on.checked = a.on;
       on.disabled = isExclusiveApp(a.key);
       const relay = el("input", { type: "checkbox" }) as HTMLInputElement;
       relay.checked = false;
@@ -442,9 +449,9 @@ export function renderConfigView(root: HTMLElement): void {
       appRow.append(
         el(
           "div",
-          { style: "display:flex;justify-content:space-between;align-items:center;padding:5px 0 5px 14px" },
+          { class: "routing-app-row", style: "display:flex;justify-content:space-between;align-items:center;padding:5px 0 5px 14px" },
           [
-            el("label", { class: "checkbox-row" }, [on, domainLogo(a.key === "perforce" ? "perforce.com" : SITE_CATALOG.find(site => site.key === a.key)?.domains[0] ?? ""), el("span", {}, [a.label])]),
+            el("label", { class: "checkbox-row" }, [on, domainLogo(a.key === "perforce" || a.key === "perforce_hk" ? "perforce.com" : SITE_CATALOG.find(site => site.key === a.key)?.domains[0] ?? ""), el("span", {}, [a.label])]),
             el("div", { class: "btn-row", style: "justify-content:flex-end;gap:8px" }, [
               exchangeKeys.has(a.key) ? el("span", { class: "field-hint", style: "margin:0;white-space:nowrap" }, ["台湾出口（单独配置）"]) : relayLabel,
               manageButton,
@@ -456,23 +463,44 @@ export function renderConfigView(root: HTMLElement): void {
     }
     // 分类「全选」框：勾/取消本分类所有 APP 的「走代理」；半选=部分勾。点它不触发折叠。
     const catAll = el("input", { type: "checkbox", title: "全选 / 取消本分类" }) as HTMLInputElement;
+    catAll.setAttribute("aria-label", `${c.cat.split("（")[0]}：全选 / 取消本分类`);
+    const count = el("span", { class: "routing-count" });
+    const section = el("div", { class: "routing-category", hidden: c.apps.some(a => isExclusiveApp(a.key)) });
     const updateCatAll = (): void => {
       const controls = [...catOns, ...categorySites.filter(s => s.category === c.cat).map(s => s.enabled)];
       const n = controls.filter((o) => o.checked).length;
       catAll.checked = n === controls.length;
       catAll.indeterminate = n > 0 && n < controls.length;
+      count.textContent = `${n}/${controls.length}`;
+      section.classList.toggle("is-unselected", n === 0);
     };
     catAll.onclick = (e: MouseEvent): void => {
       e.stopPropagation();
       for (const o of catOns) o.checked = catAll.checked;
       for (const site of categorySites.filter(s => s.category === c.cat)) site.enabled.checked = catAll.checked;
+      updateCatAll();
       persistDraft();
     };
     for (const o of catOns) o.addEventListener("change", updateCatAll);
     updateCatAll();
     catAllUpdaters.push(updateCatAll);
     const arrow = el("span", { class: "acc-arrow" }, ["▸"]);
-    const body = el("div", { class: "acc-body" }, [inner]); // 下拉动画容器（grid-rows 0fr↔1fr）
+    const body = el("div", { class: "acc-body", id: `routing-category-${categoryIndex}` }, [inner]);
+    const expand = el("button", { type: "button", class: "routing-expand", "aria-controls": body.id, "aria-expanded": "false" });
+    const setOpen = (open: boolean): void => {
+      body.classList.toggle("open", open); arrow.classList.toggle("acc-arrow--open", open);
+      expand.setAttribute("aria-expanded", String(open)); body.inert = !open;
+    };
+    expand.onclick = () => setOpen(!body.classList.contains("open"));
+    const cut = c.cat.indexOf("（");
+    const title = cut < 0 ? c.cat : c.cat.slice(0, cut);
+    const subtitle = c.apps.some(a => a.key === "perforce") ? "美国与香港服务器分别分流" : cut < 0 ? "" : c.cat.slice(cut + 1, -1);
+    const tag = subtitle.includes("需美国") ? "US 家宽" : subtitle.includes("需台湾") ? "TW 家宽" : "";
+    expand.append(arrow, el("span", { class: "routing-heading" }, [
+      el("span", { class: "routing-title" }, [title, ...(tag ? [el("span", { class: "routing-tag" }, [tag])] : []), count]),
+      el("span", { class: "routing-subtitle" }, [subtitle]),
+    ]));
+    setOpen(guided && categoryIndex === 0);
     let adder: ReturnType<typeof import("./category-sites").categorySiteAdder> | undefined;
     const getAdder = async () => {
       if (!adder) adder = (await import("./category-sites")).categorySiteAdder(inner, c.cat, categorySites, {
@@ -487,24 +515,14 @@ export function renderConfigView(root: HTMLElement): void {
       event.stopPropagation();
       addSite.disabled = true;
       try {
-        body.classList.add("open"); arrow.classList.add("acc-arrow--open");
+        setOpen(true);
         (await getAdder()).open();
       } catch(error) { setStatus(`无法打开添加站点：${(error as Error).message}`, "err"); }
       finally { addSite.disabled = false; }
     } }, ["＋ 添加站点"]) as HTMLButtonElement;
-    const header = el(
-      "div",
-      {
-        style:
-          "display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:15px;padding:10px 0;border-top:2px solid #161616",
-        onclick: (): void => {
-          const open = body.classList.toggle("open");
-          arrow.classList.toggle("acc-arrow--open", open);
-        },
-      },
-      [catAll, arrow, el("span", { style: "flex:1" }, [c.cat]), addSite],
-    );
-    return el("div", { hidden: c.apps.some(a => isExclusiveApp(a.key)) }, [header, body]);
+    const header = el("div", { class: "routing-category-header" }, [catAll, expand, addSite]);
+    section.append(header, body);
+    return section;
   });
   function updateUsRelay(restoreDefaults = false): void {
     const enabled = enableIndep.checked && !exchangeOnly.checked;
@@ -560,19 +578,20 @@ export function renderConfigView(root: HTMLElement): void {
     try {
       if (!await matchesExclusiveCode(mysteryCode.value)) { unlockStatus.textContent = "神秘代码不正确，请重试。"; unlockStatus.className = "status-line err"; return; }
       exclusiveUnlocked = true;
-      for (const c of appControls.filter(c => isExclusiveApp(c.key))) { c.on.disabled = false; c.on.checked = true; }
+      for (const c of appControls.filter(c => isExclusiveApp(c.key))) c.on.disabled = false;
       splitSections.forEach((section, i) => { section.hidden = !exclusiveUnlocked && APP_CATALOG[i].apps.some(a => isExclusiveApp(a.key)); });
       catAllUpdaters.forEach(fn => fn()); updateUsRelay();
       mysteryCode.value = ""; mysteryCode.hidden = true; unlock.hidden = true;
       unlockStatus.textContent = "麦壳思专属配置已解锁：自家官网、Perforce。刷新页面或一键 Reset 后重新隐藏。";
       unlockStatus.className = "status-line ok";
       setStatus("已解锁专属配置，请重新生成 YAML 应用更改。", "ok");
+      refreshDesign();
     } catch { unlockStatus.textContent = "暂时无法校验代码，请刷新后重试。"; }
     finally { unlock.disabled = false; }
   } }, ["解锁专属配置"]) as HTMLButtonElement;
   mysteryCode.onkeydown = (event) => { if (event.key === "Enter") { event.preventDefault(); unlock.click(); } };
-  mysteryCode.style.cssText = "flex:1;min-width:180px;max-width:420px;min-height:44px;box-sizing:border-box;padding:10px 14px;border:2px solid #161616;border-radius:8px;font:inherit;background:#fff";
-  const mysteryPanel = el("div", { class: "card", style: "background:#fff2b3;border:3px solid #161616" }, [
+  mysteryCode.style.cssText = "flex:1;min-width:180px;max-width:420px;min-height:44px;box-sizing:border-box;padding:10px 14px;border:2px solid var(--border);border-radius:8px;font:inherit;color:var(--ink);background:var(--panel-2)";
+  const mysteryPanel = el("div", { class: "card", style: "background:var(--unlock-bg, #fff2b3);border:3px solid var(--border)" }, [
     el("h2", {}, ["麦壳思专属解锁"]),
     el("div", { class: "field-hint" }, ["在下方输入神秘代码，解锁麦壳思专属配置。"]),
     el("div", { class: "btn-row", style: "margin-top:12px;align-items:center;flex-wrap:wrap" }, [mysteryCode, unlock]), unlockStatus,
@@ -600,7 +619,7 @@ export function renderConfigView(root: HTMLElement): void {
     const name = textInput("例如：工作网站、日本购物");
     const country = selectInput(countryOptions);
     country.setAttribute("aria-label", "自定义默认国家线路");
-    const wrapper = el("div", { style: "border-top:2px solid #161616;padding-top:16px;margin-top:16px" });
+    const wrapper = el("div", { style: "border-top:2px solid var(--border);padding-top:16px;margin-top:16px" });
     const enabled = el("input", { type: "checkbox" }) as HTMLInputElement;
     enabled.checked = true;
     const categoryId = restored?.id ?? `custom-${crypto.randomUUID()}`;
@@ -646,7 +665,7 @@ export function renderConfigView(root: HTMLElement): void {
       } catch (error) { setStatus(`无法添加站点：${(error as Error).message}`, "err"); }
       finally { addSite.disabled = false; }
     } }, ["＋ 添加站点"]) as HTMLButtonElement;
-    const summary = el("div", { role: "button", tabindex: "0", "aria-expanded": "false", style: "display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:15px;padding:10px 0;border-top:2px solid #161616", onclick: () => setOpen(!body.classList.contains("open")), onkeydown: (raw: Event) => {
+    const summary = el("div", { role: "button", tabindex: "0", "aria-expanded": "false", style: "display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;font-size:15px;padding:10px 0;border-top:2px solid var(--border)", onclick: () => setOpen(!body.classList.contains("open")), onkeydown: (raw: Event) => {
       const event = raw as KeyboardEvent;
       if (event.target === summary && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setOpen(!body.classList.contains("open")); }
     } }, [catAll, arrow, groupTitle, settings, addSite]);
@@ -935,13 +954,14 @@ export function renderConfigView(root: HTMLElement): void {
   ]);
 
   const updateTaiwan = (): void => {
-    twBody.style.display = enableTaiwan.checked ? "" : "none";
+    if (!guided) twBody.style.display = enableTaiwan.checked ? "" : "none";
     if (!enableTaiwan.checked) exchangeOnly.checked = false;
     indepCard.style.display = exchangeOnly.checked ? "none" : "";
     updateUsRelay();
     splitSections.forEach((sec, i) => {
       sec.style.display = exchangeOnly.checked && !APP_CATALOG[i].apps.some((a) => exchangeKeys.has(a.key)) ? "none" : "";
     });
+    refreshDesign();
   };
   enableTaiwan.onchange = updateTaiwan;
   exchangeOnly.onchange = updateTaiwan;
@@ -953,7 +973,7 @@ export function renderConfigView(root: HTMLElement): void {
       if (!window.confirm("一键 Reset 将清空机场订阅、独立 IP、自定义域名和当前 YAML 编辑，恢复全部默认选项。已下载文件不受影响。是否继续？")) return;
       try { clearRoutingDraft(window.localStorage); }
       catch { setStatus("浏览器未允许清除本地保存，请检查浏览器存储权限后重试。", "err"); return; }
-      preview?.destroy(); root.replaceChildren(); renderConfigView(root); window.scrollTo({ top: 0 });
+      preview?.destroy(); root.replaceChildren(); renderConfigView(root, guided); window.scrollTo({ top: 0 });
     } }, ["一键 Reset · 恢复默认"])]),
     targetCard,
     dnsCard,
@@ -975,8 +995,20 @@ export function renderConfigView(root: HTMLElement): void {
     previewCard,
   ]);
   root.append(view);
+  if (guided) {
+    refreshDesign = applyConfigDesign({ view, target, targetCard, dnsOverride, dnsCard, airportList,
+      mysteryPanel, storageStatus, indepCard, indepBody, enableIndep, taiwanCard, twBody, enableTaiwan,
+      splitCard, customCard, submit, status,
+      selected: () => {
+        const apps = appControls.filter(c => canIncludeApp(c.key, exclusiveUnlocked) && (!exchangeOnly.checked || exchangeKeys.has(c.key)));
+        const sites = categorySites.filter(s => !exchangeOnly.checked || APP_CATALOG.find(c => c.cat === s.category)?.apps.some(a => exchangeKeys.has(a.key)));
+        return { count: apps.filter(c => c.on.checked).length + sites.filter(s => s.enabled.checked).length, total: apps.length + sites.length };
+      },
+    });
+  }
   let restoring = true;
   persistDraft = () => {
+    refreshDesign();
     if (restoring) return;
     try {
       saveRoutingDraft(window.localStorage, {
@@ -1012,7 +1044,7 @@ export function renderConfigView(root: HTMLElement): void {
       }
       for (const [key, checked] of draft.apps) {
         const control = appControls.find(c => c.key === key);
-        if (control && canIncludeApp(key, exclusiveUnlocked)) control.on.checked = checked;
+        if (control) control.on.checked = checked;
       }
       target.value = draft.target; dnsOverride.checked = draft.dnsOverride; updateTarget();
       catAllUpdaters.forEach(update => update());
@@ -1023,7 +1055,7 @@ export function renderConfigView(root: HTMLElement): void {
       storageStatus.className = "status-line err";
       // Avoid replacing a valid saved record with a partial reconstruction.
       persistDraft = () => {};
-    } finally { restoring = false; view.inert = false; }
+    } finally { restoring = false; view.inert = false; refreshDesign(); }
   }
   void restoreDraft();
 }

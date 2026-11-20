@@ -97,6 +97,23 @@ dns:
 ipv6: true
 
 # ========================
+# 域名嗅探：识别纯 IP 连接中的域名，复用现有分流规则
+# ========================
+# 保留原目标地址；无法识别域名的连接仍按已有规则处理。
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports: [80, 8080]
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+
+# ========================
 # TUN 模块
 # ========================
 tun:

@@ -60,6 +60,7 @@ export function siteSuggestion(value: string, includeExclusive = false) {
 export function completeSiteDomains(value: string, includeExclusive = false): { domains: string[]; message: string } {
   const known = siteSuggestion(value, includeExclusive);
   if (!known) return { domains: normalizeDomains(value).domains, message: "未识别到站点专属域名库，仅规范你输入的域名；没有自动发现关联域名。" };
+  if (!known.domains.length) throw new Error(`${known.name} 使用 IP 地址 ${known.ipCidrs?.join("、")}，没有可补全的域名；请启用对应的内置策略组。`);
   const coverage = known.name === "Robinhood" ? "robinhood.com 同时覆盖 api.robinhood.com、bonfire.robinhood.com、cdn.robinhood.com 等全部子域名。"
     : known.name === "OKX" ? "okx.com 同时覆盖 www.okx.com、static.okx.com、wspri.okx.com、ipushws.okx.com 等全部子域名，443 / 8443 等端口均适用。"
     : "主域名及其全部子域名一并覆盖，无需逐条枚举 api、cdn、static 等地址。";

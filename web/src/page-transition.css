@@ -1,0 +1,16 @@
+:root { --transition-surface: #171717; --transition-text: #f2f2f0; }
+:root[data-theme="light"] { --transition-surface: #fafafa; --transition-text: #1a1a1a; }
+html:not([data-page-ready]), html:not([data-page-ready]) body {
+  margin: 0;
+  background: var(--transition-surface);
+  color: var(--transition-text);
+}
+.page-loader { min-height: 70vh; display: grid; place-content: center; gap: 18px; text-align: center; font: 14px system-ui, sans-serif; }
+.page-loader::before { content: ""; width: 40px; height: 3px; margin: auto; border-radius: 3px; background: #f5c518; }
+#app.page-leaving { pointer-events: none; animation: ferry-page-out 180ms ease-in both; }
+#app.page-entering { animation: ferry-page-in 420ms cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes ferry-page-out { from { opacity: 1; } to { opacity: 0; transform: translateY(-8px); } }
+@keyframes ferry-page-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  #app.page-leaving, #app.page-entering { animation: none; }
+}

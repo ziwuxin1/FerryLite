@@ -1,7 +1,7 @@
 // Curated service resources, not a crawl or a country-domain expansion.
 // Root suffixes cover API/CDN subdomains; additional roots require a reviewed source.
 // See doc/site-domain-catalog.md for scope and maintenance.
-export interface SitePreset { key: string; name: string; aliases: string[]; domains: string[]; exclusive?: boolean; sources: string[] }
+export interface SitePreset { key: string; name: string; aliases: string[]; domains: string[]; ipCidrs?: string[]; exclusive?: boolean; sources: string[] }
 export const SITE_CATALOG: SitePreset[] = [
   {"key":"chatgpt","name":"ChatGPT","aliases":["chatgpt","ChatGPT"],"domains":["chatgpt.com","openai.com","oaistatic.com","oaiusercontent.com","chatgpt.livekit.cloud","openaiassets.blob.core.windows.net","openaicom.imgix.net"],"sources":["https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geo/geosite/openai.list"]},
   {"key":"gemini","name":"Gemini","aliases":["gemini","Gemini"],"domains":["gemini.google.com","gemini-pa.googleapis.com","robinfrontend-pa.googleapis.com","proactivebackend-pa.googleapis.com","generativelanguage.googleapis.com","aistudio.google.com","aistudio-pa.clients6.google.com"],"sources":["https://gh-proxy.com/raw.githubusercontent.com/liandu2024/clash/refs/heads/main/list/Gemini.list"]},
@@ -40,7 +40,8 @@ export const SITE_CATALOG: SitePreset[] = [
   {"key":"kucoin","name":"KuCoin","aliases":["kucoin","KuCoin"],"domains":["kucoin.com"],"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"]},
   {"key":"gate","name":"Gate.io","aliases":["gate","Gate.io"],"domains":["gate.io","gate.com"],"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"]},
   {"key":"bitget","name":"Bitget","aliases":["bitget","Bitget"],"domains":["bitget.com"],"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"]},
-  {"key":"perforce","name":"Perforce 服务器","aliases":["perforce","Perforce 服务器"],"domains":["perforce-maxs.ddns.me"],"exclusive":true,"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"]},
+  {"key":"perforce","name":"Perforce 美国","aliases":["perforce","Perforce 服务器","Perforce 美国（默认美国自动）"],"domains":["perforce-maxs.ddns.me"],"exclusive":true,"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"]},
+  {"key":"perforce_hk","name":"Perforce 香港","aliases":["perforce_hk","Perforce 香港（默认香港自动）"],"domains":[],"ipCidrs":["103.143.80.232/32"],"exclusive":true,"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"]},
   {"key":"parsec","name":"Parsec 远程桌面","aliases":["parsec","Parsec 远程桌面"],"domains":["parsec.app","parsecgaming.com"],"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"]},
   {"key":"tiktok","name":"TikTok","aliases":["tiktok","TikTok（默认美国独立 IP）","TikTok"],"domains":["tiktok.com","tiktokv.com","tiktokcdn.com","tik-tokapi.com","tiktok-row.net","tiktokcdn-eu.com","tiktokcdn-us.com","tiktokeu-cdn.com","tiktokrow-cdn.com","ttlivecdn.com","ttwstatic.com","tiktokcdn.com.akamaized.net","p16-tiktokcdn-com.akamaized.net"],"sources":["https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geo/geosite/tiktok.list"]},
   {"key":"telegram","name":"Telegram","aliases":["telegram","Telegram","电报"],"domains":["telegram.org","telegram.me","t.me","tdesktop.com","telegra.ph","telegram-cdn.org","cdn-telegram.org","telesco.pe"],"sources":["https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geo/geosite/telegram.list"]},

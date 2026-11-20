@@ -3,6 +3,7 @@ import { yaml } from "@codemirror/lang-yaml";
 import { autocompletion, startCompletion, type CompletionContext } from "@codemirror/autocomplete";
 import { linter, lintGutter } from "@codemirror/lint";
 import { el } from "../dom";
+import { yamlTheme } from "./yaml-theme";
 import { platform } from "../platform";
 import { domainLogo } from "./group-domain-manager";
 import { addSites, completeSiteDomains, inspectYaml, MAX_YAML_SIZE, normalizeDomains, readYaml, removeDomainRule, safeFix, setDefaultExit, setGroupIcon, siteSuggestion, SITES } from "../yaml-editor";
@@ -35,7 +36,7 @@ export function renderYamlEditor(root: HTMLElement) {
     ] };
   }
   const editor = new EditorView({ parent: editorHost, extensions: [
-    basicSetup, yaml(), autocompletion({ override: [complete] }), lintGutter(),
+    basicSetup, yaml(), yamlTheme, autocompletion({ override: [complete] }), lintGutter(),
     linter(view => inspectYaml(view.state.doc.toString()).map(p => ({ ...p, from: Math.min(p.from, view.state.doc.length), to: Math.min(Math.max(p.from, p.to), view.state.doc.length) })), { delay: 700 }),
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ "aria-label": "YAML 源码编辑器", spellcheck: "false" }),

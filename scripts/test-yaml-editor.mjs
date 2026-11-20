@@ -33,7 +33,11 @@ test('every built-in app has an isolated, valid site preset and private suggesti
   }
   assert.equal(new Set(SITE_CATALOG.map(s => s.key)).size, SITE_CATALOG.length);
   for (const preset of SITE_CATALOG) {
-    assert.ok(preset.domains.length > 0 && preset.sources.length > 0, preset.key);
+    assert.ok((preset.domains.length > 0 || preset.ipCidrs?.length > 0) && preset.sources.length > 0, preset.key);
+    if (!preset.domains.length) {
+      assert.throws(() => completeSiteDomains(preset.key, true), /使用 IP 地址/);
+      continue;
+    }
     assert.deepEqual(normalizeDomains(preset.domains.join('\n')).domains, preset.domains);
     const output = addSites(original, {target:'Games',text:preset.domains.join('\n'),exact:false,replaceIcon:false}).source;
     const parsed = readYaml(output);
@@ -76,8 +80,8 @@ test('exclusive options require the code and stay excluded from locked selection
   assert.equal(await matchesExclusiveCode('wrong-code'), false);
   assert.equal(await matchesExclusiveCode(''), false);
   assert.equal(await matchesExclusiveCode('181501'), true);
-  assert.deepEqual(['youtube', 'maxsacademy', 'perforce'].filter(key => canIncludeApp(key, false)), ['youtube']);
-  assert.deepEqual(['youtube', 'maxsacademy', 'perforce'].filter(key => canIncludeApp(key, true)), ['youtube', 'maxsacademy', 'perforce']);
+  assert.deepEqual(['youtube', 'maxsacademy', 'perforce', 'perforce_hk'].filter(key => canIncludeApp(key, false)), ['youtube']);
+  assert.deepEqual(['youtube', 'maxsacademy', 'perforce', 'perforce_hk'].filter(key => canIncludeApp(key, true)), ['youtube', 'maxsacademy', 'perforce', 'perforce_hk']);
 });
 
 test('category additions export named groups with suffix rules, selected exits and logos', () => {

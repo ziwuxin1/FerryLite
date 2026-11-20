@@ -209,10 +209,12 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
     if !input.custom_groups.is_empty() {
         split_groups.push_str(&format!("\n  {}", custom::groups(input)));
     }
+    split_groups.push_str(&format!("\n  {}", build_refresh_groups(&input.airports, "所有-自动")));
     let mut top_rules = if input.taiwan_node.is_some() {
         format!("{}\n  {}", taiwan::rules(input), build_top_rules())
     } else { build_top_rules() };
     top_rules = format!("{}\n  {top_rules}", taiwan::media_rules());
+    top_rules = format!("{}\n  {top_rules}", build_private_rules());
     let mut yaml = template
         .replace(ANCHOR_PROVIDERS, &providers_block)
         .replace(ANCHOR_PROXY_NODE, &node_block)
@@ -292,12 +294,55 @@ pub fn parse_dns_override(yaml: &str) -> bool {
     }
 }
 
+/// 机场节点列表的刷新间隔（秒）。机场会轮换入口域名 / 端口，旧入口仍接受 TCP 但握手即断
+/// （connect error: EOF），节点列表一过期就表现为「全部超时」。客户端的「更新订阅」不会刷新
+/// proxy-providers，只能靠这个间隔：内核运行中按它定时拉取，启动时缓存超过它也会强制拉取。
+/// 每个机场每小时 6 次请求，远低于订阅接口的常见限流。
+const PROVIDER_REFRESH_SECS: u32 = 600;
+
+/// 机场订阅专用的拉取通道（策略组名）。见 build_refresh_groups。
+fn refresh_group_name(airport: &Airport) -> String {
+    format!("订阅更新-{}", airport.name.trim())
+}
+
+/// 订阅站点本身（scheme://host[:port]/）：去掉路径、查询串（含 token）和 user:pass@，
+/// 只用来探测「直连能否到达订阅站点」。
+fn subscription_origin(url: &str) -> String {
+    let url = url.trim();
+    let (scheme, rest) = url.split_once("://").unwrap_or(("https", url));
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    let host = authority.rsplit('@').next().unwrap_or(authority);
+    format!("{scheme}://{host}/")
+}
+
+/// 每个机场一个隐藏的 fallback 组，专供该机场 proxy-provider 拉取订阅：
+/// 首选直连（节点全部失效时也能自救）；直连到不了订阅站点时，自动改走 `backup`（由机场节点组成的组）。
+/// lazy: false → 内核主动探测，直连失效后无需任何流量触发即可切换。两条路都不通时内核仍退回首位直连，
+/// 行为不差于固定直连。
+fn build_refresh_groups(airports: &[Airport], backup: &str) -> String {
+    airports
+        .iter()
+        .map(|a| {
+            format!(
+                "- {{name: {name}, type: fallback, hidden: true, lazy: false, proxies: [直连, {backup}], url: {url}, interval: {interval}}}",
+                // 加引号：否则未启用独立 IP 时的全文清理（strip_independent_refs）会误伤以「美国独立IP」结尾的机场名。
+                name = yaml_dq(&refresh_group_name(a)),
+                url = yaml_dq(&subscription_origin(&a.url)),
+                interval = PROVIDER_REFRESH_SECS,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n  ")
+}
+
 fn build_provider_block(airport: &Airport) -> String {
     // 首行不带缩进（由模板/join 提供 2 空格）；内部行带绝对缩进。
     format!(
-        "{name}:\n    url: \"{url}\"\n    type: http\n    interval: 86400\n    health-check:\n      enable: true\n      url: https://www.gstatic.com/generate_204\n      interval: 300\n    proxy: 直连",
+        "{name}:\n    url: \"{url}\"\n    type: http\n    interval: {interval}\n    health-check:\n      enable: true\n      url: https://www.gstatic.com/generate_204\n      interval: 300\n    proxy: {via}",
         name = airport.name.trim(),
         url = airport.url.trim().replace('\\', "\\\\"),
+        interval = PROVIDER_REFRESH_SECS,
+        via = refresh_group_name(airport),
     )
 }
 
@@ -339,6 +384,29 @@ fn strip_independent_refs(yaml: &str) -> String {
         .replace("美国独立IP,", "")
         .replace(", 美国独立IP", "")
         .replace("美国独立IP, ", "")
+}
+
+/// 局域网 / 链路本地 / 运营商内网 / 组播网段：永远直连，不参与分流。
+const PRIVATE_CIDRS: &[&str] = &[
+    "IP-CIDR,10.0.0.0/8",
+    "IP-CIDR,172.16.0.0/12",
+    "IP-CIDR,192.168.0.0/16",
+    "IP-CIDR,169.254.0.0/16",
+    "IP-CIDR,100.64.0.0/10",
+    "IP-CIDR,224.0.0.0/4",
+    "IP-CIDR6,fc00::/7",
+    "IP-CIDR6,fe80::/10",
+    "IP-CIDR6,ff00::/8",
+];
+
+/// 私有网段直连规则，置于全部规则最前。no-resolve：只匹配目标本身是 IP 的连接，
+/// 不触发域名解析，因此不会影响后面任何按域名分流的规则。
+fn build_private_rules() -> String {
+    PRIVATE_CIDRS
+        .iter()
+        .map(|cidr| format!("- {cidr},直连,no-resolve"))
+        .collect::<Vec<_>>()
+        .join("\n  ")
 }
 
 fn build_top_rules() -> String {
@@ -683,6 +751,7 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
             "apple" => rules.push(format!("- RULE-SET,Apple / Domain,{t}")),
             "microsoft" => rules.push(format!("- RULE-SET,Microsoft / Domain,{t}")),
             "perforce" => rules.push(format!("- DOMAIN,perforce-maxs.ddns.me,{t}")),
+            "perforce_hk" => rules.push(format!("- IP-CIDR,103.143.80.232/32,{t},no-resolve")),
             "parsec" => {
                 for d in ["parsec.app", "parsecgaming.com"] {
                     rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
@@ -758,6 +827,7 @@ const ICON_DOMAINS: &[(&str, &str)] = &[
     ("gate", "gate.io"),
     ("bitget", "bitget.com"),
     ("perforce", "perforce.com"),
+    ("perforce_hk", "perforce.com"),
     ("parsec", "parsec.app"),
     ("tiktok", "tiktok.com"),
     ("telegram", "telegram.org"),
@@ -857,11 +927,11 @@ fn icon_domain(key: &str) -> Option<&'static str> {
 
 /// 每个 APP 的默认出口（select 组首位=zashboard 导入后默认选中的节点）。固定映射（用户指定）：
 /// 直连=Apple/Microsoft；台湾-自动=离岸加密交易所；
-/// 香港-自动=流媒体/社媒/开发者/设计/游戏/Google/Perforce；
+/// 香港-自动=流媒体/社媒/开发者/设计/游戏/Google/香港 Perforce；美国 Perforce=美国-自动；
 /// 其余（AI/券商/银行/房贷/保险/购物/政府/美国加密/TikTok/Unity）=美国独立IP（无独立IP时退回美国-自动）。
 fn default_exit(key: &str, has_indep: bool) -> &'static str {
     const HK: &[&str] = &[
-        "google", "perforce", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma", "tapnow", "maxsacademy",
+        "google", "perforce_hk", "youtube", "netflix", "disney", "hbo", "spotify", "twitch", "therookies", "figma", "tapnow", "maxsacademy",
         "telegram", "twitter", "whatsapp", "facebook", "instagram", "discord", "reddit", "github", "gitlab",
         "stackoverflow", "npm", "dockerhub", "pypi", "huggingface", "vercel",
         "netlify", "atlassian", "bitbucket", "replit", "artstation", "pinterest",
@@ -1349,6 +1419,27 @@ mod tests {
     fn generated_parses_as_yaml() {
         let y = inject(&sample()).unwrap();
         serde_yaml::from_str::<serde_yaml::Value>(&y).expect("注入后应为合法 yaml");
+    }
+
+    #[test]
+    fn generated_profiles_enable_pure_ip_sniffing() {
+        for target in [ConfigTarget::Pc, ConfigTarget::Nikki] {
+            let mut input = sample();
+            input.target = target;
+            let result = generate(&input).unwrap();
+            let doc: serde_yaml::Value = serde_yaml::from_str(&result.yaml).unwrap();
+            let sniffer = &doc["sniffer"];
+            assert_eq!(sniffer["enable"].as_bool(), Some(true));
+            assert_eq!(sniffer["force-dns-mapping"].as_bool(), Some(true));
+            assert_eq!(sniffer["parse-pure-ip"].as_bool(), Some(true));
+            assert_eq!(sniffer["override-destination"].as_bool(), Some(false));
+            for (protocol, ports) in [("HTTP", vec![80, 8080]), ("TLS", vec![443, 8443]), ("QUIC", vec![443, 8443])] {
+                let actual: Vec<i64> = sniffer["sniff"][protocol]["ports"]
+                    .as_sequence().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
+                assert_eq!(actual, ports);
+            }
+            assert_eq!(doc["tun"]["auto-route"].as_bool(), Some(target == ConfigTarget::Pc));
+        }
     }
 
     #[test]

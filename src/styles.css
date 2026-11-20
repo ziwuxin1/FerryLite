@@ -21,9 +21,9 @@
   --err-bg: #f7d3cf;
   --danger: #e5484d;
   --danger-press: #c2261b;
-  --shadow: 4px 4px 0 var(--ink);
-  --shadow-sm: 2px 2px 0 var(--ink);
-  --shadow-lg: 6px 6px 0 var(--ink);
+  --shadow: 4px 4px 0 var(--shadow-ink, #161616);
+  --shadow-sm: 2px 2px 0 var(--shadow-ink, #161616);
+  --shadow-lg: 6px 6px 0 var(--shadow-ink, #161616);
   font-family: "Space Grotesk Variable", "Segoe UI Variable Text", "Segoe UI",
     "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC",
     system-ui, sans-serif;
@@ -91,7 +91,7 @@ input[type="radio"] {
   margin-bottom: 22px;
   padding: 16px max(28px, calc(50vw - 532px));
   background: var(--yellow);
-  border-bottom: 3px solid var(--ink);
+  border-bottom: 3px solid var(--border);
 }
 .topbar h1 {
   font-size: 22px;
@@ -120,7 +120,7 @@ input[type="radio"] {
   display: grid;
   place-items: center;
   background: #fff;
-  border: 2.5px solid var(--ink);
+  border: 2.5px solid var(--border);
   border-radius: 9px;
   box-shadow: var(--shadow-sm);
   transform: rotate(-6deg);
@@ -133,7 +133,7 @@ input[type="radio"] {
   color: #fff;
   -webkit-text-stroke: 2.5px var(--ink);
   paint-order: stroke fill;
-  text-shadow: 3px 3px 0 var(--ink);
+  text-shadow: 3px 3px 0 var(--shadow-ink, #161616);
 }
 .brand-tag {
   font-size: 20px;
@@ -145,7 +145,7 @@ input[type="radio"] {
 /* ---------- 卡片 ---------- */
 .card {
   background: var(--panel);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   border-radius: 6px;
   padding: 18px 20px;
   margin-bottom: 16px;
@@ -166,7 +166,7 @@ input[type="radio"] {
 }
 .card.banner {
   background: var(--yellow-soft);
-  border-color: var(--ink);
+  border-color: var(--border);
   color: var(--ink);
   font-size: 13px;
   line-height: 1.6;
@@ -189,7 +189,7 @@ input[type="radio"] {
   padding: 9px 11px;
   background: var(--panel-2);
   color: var(--ink);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
@@ -201,7 +201,7 @@ input[type="radio"] {
 }
 .field input:focus,
 .field select:focus {
-  border-color: var(--ink);
+  border-color: var(--border);
   box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.6);
 }
 .field .field-hint {
@@ -230,7 +230,7 @@ input[type="radio"] {
 /* ---------- 按钮（硬阴影 + 按下位移）---------- */
 .btn {
   appearance: none;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   background: var(--panel-2);
   color: var(--ink);
   padding: 10px 16px;
@@ -245,11 +245,11 @@ input[type="radio"] {
 }
 .btn:hover:not(:disabled) {
   transform: translate(-2px, -2px); /* 悬停上浮（带回弹）+ 阴影变大 */
-  box-shadow: 4px 4px 0 var(--ink);
+  box-shadow: 4px 4px 0 var(--shadow-ink, #161616);
 }
 .btn:active:not(:disabled) {
   transform: translate(1px, 1px); /* 按下陷入 */
-  box-shadow: 1px 1px 0 var(--ink);
+  box-shadow: 1px 1px 0 var(--shadow-ink, #161616);
   transition-duration: 0.04s;
 }
 .btn:disabled {
@@ -260,7 +260,7 @@ input[type="radio"] {
 }
 .btn.primary {
   background: var(--primary);
-  border-color: var(--ink);
+  border-color: var(--border);
   color: var(--ink);
 }
 .btn.primary:hover:not(:disabled) {
@@ -268,7 +268,7 @@ input[type="radio"] {
 }
 .btn.danger {
   background: var(--danger);
-  border-color: var(--ink);
+  border-color: var(--border);
   color: #fff;
 }
 .btn.danger:hover:not(:disabled) {
@@ -290,7 +290,7 @@ input[type="radio"] {
 .airport-row {
   padding: 12px;
   margin-bottom: 12px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   border-radius: 6px;
   background: var(--panel-2);
   box-shadow: var(--shadow-sm);
@@ -327,7 +327,7 @@ input[type="radio"] {
 }
 .u-card {
   background: var(--panel);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   border-radius: 6px;
   padding: 14px 16px;
   box-shadow: var(--shadow-sm);
@@ -361,7 +361,7 @@ input[type="radio"] {
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 6px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
 }
 .u-idle {
   background: var(--panel-2);
@@ -382,7 +382,7 @@ input[type="radio"] {
 .u-region {
   font-size: 11px;
   color: var(--ink);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   background: var(--yellow-soft);
   padding: 2px 8px;
   border-radius: 6px;
@@ -412,7 +412,7 @@ input[type="radio"] {
   display: flex;
   gap: 10px;
   padding: 10px 12px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   border-radius: 6px;
   margin-bottom: 8px;
   background: var(--panel-2);
@@ -492,7 +492,7 @@ input[type="radio"] {
   padding: 10px 12px;
   border-radius: 6px;
   background: var(--panel-2);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   box-shadow: var(--shadow-sm);
   margin-bottom: 10px;
 }
@@ -510,7 +510,7 @@ input[type="radio"] {
 .dialog {
   width: min(440px, 92vw);
   background: var(--panel);
-  border: 3px solid var(--ink);
+  border: 3px solid var(--border);
   border-radius: 8px;
   padding: 22px;
   box-shadow: var(--shadow-lg);
@@ -522,7 +522,7 @@ input[type="radio"] {
 }
 .warn-text {
   background: var(--yellow-soft);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   color: var(--ink);
   padding: 10px 12px;
   border-radius: 6px;
@@ -543,7 +543,7 @@ input[type="radio"] {
   left: 50%;
   transform: translate(-50%, 20px);
   background: var(--panel);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--border);
   color: var(--ink);
   padding: 11px 18px;
   border-radius: 6px;

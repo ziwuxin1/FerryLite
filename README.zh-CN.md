@@ -12,7 +12,7 @@
 
 网页版使用 WASM 在浏览器本地处理订阅和代理凭据；桌面版共用相同的界面与 YAML 编辑器，使用系统“另存为”窗口保存文件。
 
-[English](README.md) · [1.5.0 使用说明](doc/FerryLite-1.5.0-使用说明.md) · [Windows 免安装版下载](https://github.com/ziwuxin1/FerryLite/releases/latest)
+[English](README.md) · [1.5.1 使用说明](doc/FerryLite-1.5.1-使用说明.md) · [Windows 免安装版下载](https://github.com/ziwuxin1/FerryLite/releases/latest)
 
 ## 功能
 

@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 // 所以 root 设在 web/ 并放开上级目录访问。产物是能丢到任何静态托管的一堆文件。
 export default defineConfig({
   root: "web",
-  base: "./",
+  base: "/",
   server: {
     port: 1430,
     fs: {

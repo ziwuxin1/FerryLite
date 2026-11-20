@@ -53,6 +53,37 @@ fn group<'a>(v: &'a Value, name: &str) -> &'a Value {
 }
 
 #[test]
+fn perforce_servers_have_independent_routes_in_both_profiles() {
+    for target in [ConfigTarget::Pc, ConfigTarget::Nikki] {
+        let mut input = sample();
+        input.target = target;
+        input.taiwan_node = None;
+        input.split_apps = vec![
+            SplitApp { key: "perforce".into(), name: "Perforce 美国".into(), relay: false },
+            SplitApp { key: "perforce_hk".into(), name: "Perforce 香港".into(), relay: false },
+        ];
+        let value = parsed(&input);
+        assert_eq!(group(&value, "Perforce 美国")["proxies"][0], "美国-自动");
+        assert_eq!(group(&value, "Perforce 香港")["proxies"][0], "香港-自动");
+        let rules = value["rules"].as_sequence().unwrap();
+        let find = |text: &str| rules.iter().position(|v| v.as_str() == Some(text)).unwrap();
+        find("DOMAIN,perforce-maxs.ddns.me,Perforce 美国");
+        assert!(find("IP-CIDR,103.143.80.232/32,Perforce 香港,no-resolve")
+            < rules.iter().position(|r| r.as_str().unwrap().starts_with("MATCH,")).unwrap());
+        let both = input.split_apps.clone();
+        for index in 0..2 {
+            input.split_apps = vec![both[index].clone()];
+            let yaml = generate(&input).unwrap().yaml;
+            assert_eq!(yaml.contains("DOMAIN,perforce-maxs.ddns.me,"), index == 0);
+            assert_eq!(yaml.contains("IP-CIDR,103.143.80.232/32,"), index == 1);
+        }
+        input.split_apps.clear();
+        let disabled = generate(&input).unwrap().yaml;
+        assert!(!disabled.contains("103.143.80.232/32"));
+    }
+}
+
+#[test]
 fn custom_domains_export_in_both_profiles_and_modes() {
     for target in [ConfigTarget::Pc, ConfigTarget::Nikki] {
         for exchange_only in [false, true] {
@@ -334,5 +365,83 @@ fn removed_return_apps_cannot_be_generated_by_legacy_inputs() {
         let mut input = sample();
         input.split_apps.push(SplitApp { key: key.into(), name: "旧项目".into(), relay: false });
         assert!(generate(&input).unwrap_err().contains("不支持的分流项目"));
+    }
+}
+
+#[test]
+fn private_ip_traffic_is_direct_before_any_other_rule() {
+    // TUN 下访问局域网（NAS / 打印机 / 192.168.x）不能落到 MATCH 走机场。
+    let expected = [
+        "IP-CIDR,10.0.0.0/8,直连,no-resolve",
+        "IP-CIDR,172.16.0.0/12,直连,no-resolve",
+        "IP-CIDR,192.168.0.0/16,直连,no-resolve",
+    ];
+    for target in [ConfigTarget::Pc, ConfigTarget::Nikki] {
+        for with_taiwan in [false, true] {
+            let mut input = sample();
+            input.target = target;
+            if !with_taiwan { input.taiwan_node = None; }
+            let doc = parsed(&input);
+            let rules: Vec<&str> = doc["rules"].as_sequence().unwrap().iter().map(|r| r.as_str().unwrap()).collect();
+            let first_other = rules.iter().position(|r| !r.ends_with(",直连,no-resolve")).unwrap();
+            for want in expected {
+                let at = rules.iter().position(|r| *r == want).unwrap_or_else(|| panic!("缺少规则 {want}"));
+                assert!(at < first_other, "{want} 必须排在所有分流规则之前");
+            }
+        }
+    }
+}
+
+#[test]
+fn airport_node_list_self_heals_without_user_action() {
+    // 机场会轮换入口域名 / 端口；节点列表过期后旧入口握手即断（connect error: EOF），表现为全部超时。
+    // 要求：① 至多 10 分钟自动刷新；② 刷新先走直连，直连拉不到时自动改走仍存活的机场节点。
+    for target in [ConfigTarget::Pc, ConfigTarget::Nikki] {
+        for exchange_only in [false, true] {
+            let mut input = sample();
+            input.target = target;
+            input.exchange_only = exchange_only;
+            input.airports[0].url = "https://user:pw@sub.example.test:8443/api/v1/client/subscribe?token=SECRET".into();
+            let doc = parsed(&input);
+            let providers = doc["proxy-providers"].as_mapping().unwrap();
+            assert!(!providers.is_empty());
+            for (name, p) in providers {
+                let name = name.as_str().unwrap();
+                let interval = p["interval"].as_u64().unwrap();
+                assert!(interval > 0 && interval <= 600, "{name} 的 interval={interval}，节点列表至多 10 分钟刷新一次");
+                let via = p["proxy"].as_str().unwrap();
+                assert_eq!(via, format!("订阅更新-{name}"));
+                let g = group(&doc, via);
+                assert_eq!(g["type"].as_str(), Some("fallback"));
+                assert_eq!(g["hidden"].as_bool(), Some(true));
+                assert_eq!(g["lazy"].as_bool(), Some(false), "必须主动探测，否则直连失效时不会切换");
+                let members: Vec<&str> = g["proxies"].as_sequence().unwrap().iter().map(|m| m.as_str().unwrap()).collect();
+                assert_eq!(members.len(), 2);
+                assert_eq!(members[0], "直连", "首选直连：节点全部失效时仍能自救");
+                let backup = group(&doc, members[1]);
+                assert_eq!(backup["include-all-providers"].as_bool(), Some(true), "备用通道必须由机场节点组成");
+                assert_eq!(g["url"].as_str(), Some("https://sub.example.test:8443/"), "探测地址只含订阅站点本身，不带路径 / token / 账号");
+            }
+        }
+    }
+}
+
+#[test]
+fn refresh_channel_survives_airport_named_like_the_independent_node() {
+    // 未启用独立 IP 时会全文清理「美国独立IP」引用；机场恰好叫这个名字时不能把「订阅更新」组名清坏。
+    let mut input = sample();
+    input.taiwan_node = None;
+    input.independent_nodes = vec![];
+    input.airports = vec![
+        Airport { name: "美国独立IP".into(), url: "https://a.example.test/sub".into() },
+        Airport { name: "Second".into(), url: "http://b.example.test:8080/sub?token=x".into() },
+    ];
+    let doc = parsed(&input);
+    for (name, origin) in [("美国独立IP", "https://a.example.test/"), ("Second", "http://b.example.test:8080/")] {
+        let via = doc["proxy-providers"][name]["proxy"].as_str().unwrap();
+        assert_eq!(via, format!("订阅更新-{name}"));
+        let g = group(&doc, via);
+        assert_eq!(g["url"].as_str(), Some(origin));
+        assert_eq!(g["proxies"][1].as_str(), Some("所有-自动"));
     }
 }

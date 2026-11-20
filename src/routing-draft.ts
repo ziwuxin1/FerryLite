@@ -39,6 +39,25 @@ function parseDraft(raw: string): RoutingDraft {
     if (!Array.isArray(pair) || pair.length !== 2 || !string(pair[0]) || typeof pair[1] !== "boolean") throw new Error("保存的勾选状态无效");
     return [pair[0], pair[1]];
   });
+  // Split the former shared Perforce edits without restoring rules the user removed.
+  const legacyIndex = edits.findIndex(([name]) => name === "Perforce 服务器");
+  if (legacyIndex >= 0) {
+    const [, legacy] = edits.splice(legacyIndex, 1)[0];
+    const isHongKong = (rule: string) => rule.startsWith("IP-CIDR,103.143.80.232/32,");
+    const rename = (rule: string, name: string) => {
+      const parts = rule.split(",");
+      if (parts[2] === "Perforce 服务器") parts[2] = name;
+      return parts.join(",");
+    };
+    if (!edits.some(([name]) => name === "Perforce 美国")) edits.push(["Perforce 美国", {
+      ...legacy, removedRules: legacy.removedRules.filter(r => !isHongKong(r)).map(r => rename(r, "Perforce 美国")),
+    }]);
+    if (!edits.some(([name]) => name === "Perforce 香港")) edits.push(["Perforce 香港", {
+      domains: [], removedRules: legacy.removedRules.filter(isHongKong).map(r => rename(r, "Perforce 香港")),
+    }]);
+  }
+  const legacyApp = apps.find(([key]) => key === "perforce");
+  if (legacyApp && !apps.some(([key]) => key === "perforce_hk")) apps.push(["perforce_hk", false]);
   return { version: 1, groups, sites, edits, apps, target: data.target as RoutingDraft["target"], dnsOverride: data.dnsOverride };
 }
 export function loadRoutingDraft(storage: DraftStorage): RoutingDraft | null {

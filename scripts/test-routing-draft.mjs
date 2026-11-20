@@ -36,6 +36,24 @@ test('Reset clears only FerryLite routing data and a reload starts empty', () =>
   assert.equal(loadRoutingDraft(storage), null);
   assert.equal(storage.getItem('unrelated'), 'keep');
 });
+
+test('legacy Perforce deletions migrate to separate regional groups and survive another save', () => {
+  const storage = memoryStorage(), state = sample();
+  state.apps = [['perforce', true]];
+  state.edits = [['Perforce 服务器', {
+    domains: ['extra.example.test'], iconDomain: 'perforce.com',
+    removedRules: ['DOMAIN,perforce-maxs.ddns.me,Perforce 服务器', 'IP-CIDR,103.143.80.232/32,Perforce 服务器,no-resolve'],
+  }]];
+  storage.setItem(ROUTING_DRAFT_KEY, JSON.stringify(state));
+  const migrated = loadRoutingDraft(storage);
+  assert.deepEqual(migrated.apps, [['perforce', true], ['perforce_hk', false]]);
+  assert.deepEqual(migrated.edits, [
+    ['Perforce 美国', {domains:['extra.example.test'], iconDomain:'perforce.com', removedRules:['DOMAIN,perforce-maxs.ddns.me,Perforce 美国']}],
+    ['Perforce 香港', {domains:[], removedRules:['IP-CIDR,103.143.80.232/32,Perforce 香港,no-resolve']}],
+  ]);
+  saveRoutingDraft(storage, migrated);
+  assert.deepEqual(loadRoutingDraft(storage), migrated);
+});
 test('serialization excludes credentials, subscription URLs and unknown fields', () => {
   const storage = memoryStorage(), state = sample();
   state.password = 'secret-password'; state.airports = [{url: 'https://secret.test/token'}];

@@ -611,3 +611,10 @@ input[type="radio"] {
 .overseas-node-row span { overflow-wrap: anywhere; }
 .overseas-node-row .btn { flex-shrink: 0; }
 .overseas-route { border-top: 1px solid var(--border); }
+.overseas-quick input, .overseas-quick select { width: 100%; }
+.overseas-quick > .btn-row { margin-top: 24px; }
+.overseas-quick > .btn-row > .primary { min-width: 180px; }
+.overseas-routing-summary { border-top: 1px solid var(--border); padding-top: 20px; }
+.overseas-advanced > .card { margin-top: 20px; }
+.overseas-private .btn-row { flex-wrap: wrap; }
+.overseas-private input { flex: 1 1 180px; min-width: 0; }

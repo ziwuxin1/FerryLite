@@ -30,6 +30,24 @@ test('private preferences, user subscriptions and chained nodes coexist',()=>{
   assert.ok(c['proxy-groups'].find(g=>g.name==='台湾-机场').use.length===2);
   assert.ok(!c['proxy-groups'].find(g=>g.name==='台湾-机场').proxies.includes('台湾 · residential'));
 });
+test('subscription-only setup names the airport and selects useful public defaults',()=>{
+  const c=parse(generateOverseas({...input,target:'pc',airports:[{name:'',url:'https://airport.example.test/clash?token=synthetic'}]}).yaml);
+  const group=name=>c['proxy-groups'].find(g=>g.name===name);
+  const providerNames=Object.keys(c['proxy-providers']);
+  assert.equal(providerNames.length,1);
+  assert.equal(c['proxy-providers'][providerNames[0]].url,'https://airport.example.test/clash?token=synthetic');
+  for(const name of ['中国网站','哔哩哔哩','STEAM'])assert.equal(group(name).proxies[0],'直连');
+  for(const name of ['交易所','台湾影音'])assert.equal(group(name).proxies[0],'台湾-出口');
+  assert.equal(group('日本网站').proxies[0],'日本-出口');
+  for(const region of ['台湾','日本']){
+    assert.equal(group(`${region}-出口`).proxies[0],`${region}-机场`);
+    assert.equal(group(`${region}-机场`).type,'url-test');
+    assert.deepEqual(group(`${region}-机场`).use,providerNames);
+    assert.equal(group(`${region}-机场`)['empty-fallback'],'REJECT');
+  }
+  assert.equal(c.tun.enable,true);
+  assert.equal(c.tun['auto-route'],true);
+});
 test('category controls remove its routes and UDP guards; custom domains precede defaults',()=>{
   const rules=parse(generateOverseas({...input,enabled:OVERSEAS_GROUPS.filter(n=>n!=='日本网站'),domains:{中国网站:'my.example.test'}}).yaml).rules;
   assert.ok(!rules.some(r=>r.endsWith(',日本网站')));

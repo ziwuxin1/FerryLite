@@ -10,7 +10,7 @@ const regionPatterns = ["(?i)(中国|回国|大陆|深圳|北京|\\bCN\\b|China)
 const flags = ["cn", "tw", "jp", "hk", "us", "sg", "kr"];
 const flag = (code: string) => `https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/${code}.svg`;
 const icons: Record<string, string> = {中国网站:flag("cn"),哔哩哔哩:"https://icon.horse/icon/bilibili.com",交易所:"https://icon.horse/icon/okx.com",台湾影音:flag("tw"),日本网站:flag("jp"),STEAM:"https://icon.horse/icon/steampowered.com"};
-const defaultExits: Record<string, string> = {中国网站:"中国-出口",哔哩哔哩:"中国网站",交易所:"台湾-出口",台湾影音:"台湾-出口",日本网站:"日本-出口",STEAM:"直连"};
+const defaultExits: Record<string, string> = {中国网站:"直连",哔哩哔哩:"直连",交易所:"台湾-出口",台湾影音:"台湾-出口",日本网站:"日本-出口",STEAM:"直连"};
 export interface OverseasInput {
   target: "pc" | "nikki";
   airports: {name:string;url:string}[];
@@ -35,10 +35,10 @@ export function generateOverseas(input: OverseasInput): {yaml:string;filename:st
   for(const node of bundle.nodes) {if(names.has(node.name))throw new Error(`节点名称与策略组冲突：${node.name}`);names.add(node.name);}
   const providers: Record<string,unknown>={};
   input.airports.forEach((a,i)=>{
-    if(!a.name.trim())throw new Error("请填写机场名称。");
+    const airportName=a.name.trim() || `我的机场 ${i+1}`;
     let u:URL;try{u=new URL(a.url.trim());}catch{throw new Error("机场订阅地址格式不正确。");}
     if(!["https:","http:"].includes(u.protocol)||u.username||u.password)throw new Error("请使用 HTTP / HTTPS 订阅链接。");
-    providers[`机场${i+1} · ${a.name.trim()}`]={type:"http",url:u.href,path:`./proxy_providers/overseas-${i+1}.yaml`,interval:600,proxy:"DIRECT","health-check":{enable:true,url:"https://www.gstatic.com/generate_204",interval:300,lazy:true}};
+    providers[`机场${i+1} · ${airportName}`]={type:"http",url:u.href,path:`./proxy_providers/overseas-${i+1}.yaml`,interval:600,proxy:"DIRECT","health-check":{enable:true,url:"https://www.gstatic.com/generate_204",interval:300,lazy:true}};
   });
   const groups: Record<string,unknown>[]=[];
   const existing=new Set([...names,...OVERSEAS_GROUPS]);

@@ -41,12 +41,36 @@ export function renderApp(root: HTMLElement, guided = false): void {
 
   // 生成和源码编辑共用配置入口。
   const generator = el("div", {}), editorPanel = el("div", { hidden: true });
+  const domesticPanel = el("div", {}), overseasPanel = el("div", {hidden:true});
+  let locationMode: "domestic" | "overseas" = "domestic";
+  let overseasLoading: Promise<void> | null = null;
+  const domesticButton = el("button",{type:"button",class:"btn primary","aria-pressed":"true"},["人在国内"]);
+  const overseasButton = el("button",{type:"button",class:"btn","aria-pressed":"false"},["人在海外"]);
+  const locationChoices = el("div",{class:"location-mode",role:"group","aria-label":"使用场景"},[
+    el("div",{class:"btn-row"},[domesticButton,overseasButton]),
+    el("p",{class:"field-hint"},["国内：沿用现有分流配置。海外：按中国、台湾、日本等地区分流，其余直连。"]),
+  ]);
   const generateTab = el("button", { class: "btn primary", type: "button" }, ["生成新 YAML"]);
   const editTab = el("button", { class: "btn", type: "button" }, ["导入 / 编辑 YAML"]);
   generator.className = "generator-panel";
   editorPanel.className = "editor-panel";
   content.append(el("div", { class: "btn-row tool-mode-tabs", style: "margin-bottom:20px" }, [generateTab, editTab]), generator, editorPanel);
-  renderConfigView(generator, guided);
+  generator.append(locationChoices,domesticPanel,overseasPanel);
+  renderConfigView(domesticPanel, guided);
+  async function showLocation(mode:"domestic"|"overseas"):Promise<void>{
+    locationMode=mode;domesticPanel.hidden=mode!=="domestic";overseasPanel.hidden=mode!=="overseas";
+    domesticButton.classList.toggle("primary",mode==="domestic");overseasButton.classList.toggle("primary",mode==="overseas");
+    domesticButton.setAttribute("aria-pressed",String(mode==="domestic"));overseasButton.setAttribute("aria-pressed",String(mode==="overseas"));
+    if(guided){nav.hidden=mode==="overseas";home.classList.toggle("editing-yaml",mode==="overseas");}
+    if(mode==="overseas"&&!overseasLoading){
+      overseasPanel.append(el("p",{role:"status"},["正在加载海外配置…"]));
+      overseasLoading=import("./views/overseas-view").then(m=>{overseasPanel.replaceChildren();m.renderOverseasView(overseasPanel);}).catch(()=>{
+        overseasLoading=null;overseasPanel.replaceChildren(el("p",{role:"status"},["海外配置加载失败，请重新点击人在海外。"]));
+      });
+    }
+    if(overseasLoading)await overseasLoading;
+  }
+  domesticButton.onclick=()=>{void showLocation("domestic");};overseasButton.onclick=()=>{void showLocation("overseas");};
   let editorLoading: Promise<ReturnType<typeof import("./views/yaml-editor-view").renderYamlEditor>> | null = null;
   function getEditor() {
     if (!editorLoading) editorLoading = import("./views/yaml-editor-view").then(m => m.renderYamlEditor(editorPanel));
@@ -54,7 +78,7 @@ export function renderApp(root: HTMLElement, guided = false): void {
   }
   async function showEditor(edit: boolean): Promise<void> {
     generator.hidden = edit; editorPanel.hidden = !edit;
-    if (guided) { nav.hidden = edit; home.classList.toggle("editing-yaml", edit); }
+    if (guided) { nav.hidden = edit || locationMode==="overseas"; home.classList.toggle("editing-yaml", edit || locationMode==="overseas"); }
     generateTab.classList.toggle("primary", !edit); editTab.classList.toggle("primary", edit);
     if (edit) (await getEditor()).show();
   }

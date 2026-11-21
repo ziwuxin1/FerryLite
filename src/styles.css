@@ -599,3 +599,15 @@ input[type="radio"] {
 .view-anim {
   animation: viewIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+/* Domestic/overseas generators keep independent state and share the editor. */
+.location-mode { margin-bottom: 24px; }
+.overseas-config .card { margin-bottom: 20px; }
+.overseas-config details summary { cursor: pointer; font-weight: 700; padding: 12px 0; }
+.overseas-config input:not([type="checkbox"]), .overseas-config select, .overseas-config textarea { box-sizing: border-box; max-width: 100%; padding: 10px; font: inherit; color: var(--ink); background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; }
+.overseas-config textarea { width: 100%; resize: vertical; }
+.overseas-config .field { margin: 12px 0; }
+.overseas-node-list { max-height: 260px; overflow: auto; }
+.overseas-node-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; }
+.overseas-node-row span { overflow-wrap: anywhere; }
+.overseas-node-row .btn { flex-shrink: 0; }
+.overseas-route { border-top: 1px solid var(--border); }

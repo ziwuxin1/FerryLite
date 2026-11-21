@@ -8,7 +8,10 @@ const headers = {
 };
 const digest = value => createHash('sha256').update(value).digest();
 
-export function createExclusiveHandler(env = process.env) {
+export function createExclusiveHandler(env = process.env, options = {}) {
+  const codeKey = options.codeKey || 'FERRYLITE_EXCLUSIVE_CODE';
+  const bundleKey = options.bundleKey || 'FERRYLITE_LISA_VPS_JSON';
+  const validate = options.validate || validateLisaBundle;
   // Supplemental per-instance throttling. Not a substitute for an edge-wide limit.
   const attempts = new Map();
   return async function handle(request) {
@@ -24,8 +27,8 @@ export function createExclusiveHandler(env = process.env) {
     if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json')) return reply(415, 'json_required');
     // The owner explicitly chose to retain the legacy shared code. Anyone who knows it
     // can retrieve these shared nodes; this is not individual student authentication.
-    const secret = env.FERRYLITE_EXCLUSIVE_CODE;
-    if (!secret || !env.FERRYLITE_LISA_VPS_JSON) return reply(503, 'not_configured');
+    const secret = env[codeKey];
+    if (!secret || !env[bundleKey]) return reply(503, 'not_configured');
     const ip = request.headers.get('x-vercel-forwarded-for')?.split(',')[0].trim() || 'unknown';
     const now = Date.now();
     for (const [key, bucket] of attempts) if (bucket.expires <= now) attempts.delete(key);
@@ -48,7 +51,7 @@ export function createExclusiveHandler(env = process.env) {
     } catch { return reply(400, 'invalid_request'); }
     if (typeof body?.code !== 'string' || !timingSafeEqual(digest(body.code.trim()), digest(secret))) return reply(401, 'invalid_code');
     try {
-      const bundle = validateLisaBundle(JSON.parse(env.FERRYLITE_LISA_VPS_JSON));
+      const bundle = validate(JSON.parse(env[bundleKey]));
       return Response.json(bundle, { headers:responseHeaders });
     } catch {
       // Never log submitted codes, environment values or validation data.

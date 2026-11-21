@@ -14,7 +14,8 @@
     "dev:web": "vite --config vite.config.web.ts",
     "build:web": "npm run build:wasm && tsc --noEmit && vite build --config vite.config.web.ts && node scripts/package-web.mjs",
     "test:editor": "node --experimental-strip-types --test scripts/test-yaml-editor.mjs scripts/test-routing-draft.mjs",
-    "test:vps": "node --experimental-strip-types --test scripts/test-lisa-vps.mjs"
+    "test:vps": "node --experimental-strip-types --test scripts/test-lisa-vps.mjs",
+    "test:overseas": "node --experimental-strip-types --test scripts/test-overseas.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",

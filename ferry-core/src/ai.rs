@@ -10,10 +10,12 @@ struct Voice { cidrs: Vec<String> }
 struct Data { chatgpt: Service, claude: Service, shared: Service, voice: Voice }
 fn data() -> Data { serde_yaml::from_str(include_str!("../data/ai-routing.json")).expect("reviewed AI data") }
 
-pub fn shared_group(apps: &[SplitApp]) -> String {
+pub fn shared_group(apps: &[SplitApp], claude_enabled: bool) -> String {
+    if !claude_enabled && !apps.iter().any(|a| a.key == "chatgpt") { return String::new(); }
     let mut choices=Vec::new();
     if let Some(app)=apps.iter().find(|a|a.key=="chatgpt") { choices.push(crate::yaml_dq(&app.name)); }
-    choices.extend(["Claude".into(),"美国-自动".into(),"直连".into()]);
+    if claude_enabled { choices.push("Claude".into()); }
+    choices.extend(["美国-自动".into(),"直连".into()]);
     format!("- {{name: AI公共服务, type: select, proxies: [{}], icon: \"https://ferrylite.cc/icons/chatgpt.png\"}}",choices.join(", "))
 }
 fn push_domain(rules: &mut Vec<String>, matcher: String, target: &str) {
@@ -29,9 +31,10 @@ fn service_rules(rules: &mut Vec<String>, service: &Service, target: &str) {
         rules.push(format!("- {kind},{ip},{target},no-resolve"));
     }
 }
-pub fn rules(apps: &[SplitApp]) -> String {
+pub fn rules(apps: &[SplitApp], claude_enabled: bool) -> String {
+    if !claude_enabled && !apps.iter().any(|a| a.key == "chatgpt") { return String::new(); }
     let d=data(); let mut rules=Vec::new();
-    service_rules(&mut rules,&d.claude,"Claude");
+    if claude_enabled { service_rules(&mut rules,&d.claude,"Claude"); }
     if let Some(app)=apps.iter().find(|a|a.key=="chatgpt") {
         service_rules(&mut rules,&d.chatgpt,&app.name);
         for ip in &d.voice.cidrs {

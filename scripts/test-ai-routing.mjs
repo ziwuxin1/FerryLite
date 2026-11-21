@@ -6,11 +6,36 @@ import {initSync,generateConfig} from '../web/src/ferry-wasm/ferry_wasm.js';
 import data from '../ferry-core/data/ai-routing.json' with {type:'json'};
 import {SITE_CATALOG} from '../src/site-catalog.ts';
 import {generateOverseas,OVERSEAS_GROUPS} from '../src/overseas-generator.ts';
+import {inspectYaml} from '../src/yaml-editor.ts';
 initSync({module:readFileSync(new URL('../web/src/ferry-wasm/ferry_wasm_bg.wasm',import.meta.url))});
 const input={airports:[{name:'Synthetic',url:'https://example.test/sub'}],independentNodes:[],controllerSecret:'synthetic-test-only',
   // Deliberately put broad cloud groups before ChatGPT in the input.
   splitApps:[{key:'microsoft',name:'Microsoft',relay:false},{key:'apple',name:'Apple',relay:false},{key:'chatgpt',name:'ChatGPT',relay:false}]};
 const generate=extra=>parse(JSON.parse(generateConfig(JSON.stringify({...input,...extra}))).yaml);
+test('Claude relay checkbox changes the default without removing the optional independent exit',()=>{
+  const independentNodes=[{name:'美国独立IP',protocol:'socks5',server:'example.test',port:1080,username:'test',password:'synthetic',dialerProxy:'美国-中转'}];
+  for(const claudeRelay of [false,true]){
+    const c=generate({independentNodes,claudeRelay});
+    const group=c['proxy-groups'].find(g=>g.name==='Claude');
+    assert.equal(group.proxies[0],claudeRelay?'美国独立IP':'美国-自动');
+    assert.ok(group.proxies.includes('美国独立IP'));
+    assert.equal(group.proxies.length,new Set(group.proxies).size);
+  }
+});
+for(const target of ['pc','nikki']) test(`${target}: Claude selection removes its rules, provider and references and can be restored`,()=>{
+  for(const enabled of [false,true]){
+    const source=JSON.parse(generateConfig(JSON.stringify({...input,target,claudeEnabled:enabled}))).yaml;
+    const c=parse(source);
+    assert.equal(c['proxy-groups'].filter(g=>g.name==='Claude').length,enabled?1:0);
+    assert.equal(Boolean(c['rule-providers']['Claude / Domain']),enabled);
+    assert.equal(c.rules.some(r=>r.includes('Claude')),enabled);
+    assert.equal(c['proxy-groups'].find(g=>g.name==='AI公共服务').proxies.includes('Claude'),enabled);
+    assert.deepEqual(inspectYaml(source).filter(p=>p.severity==='error'),[]);
+  }
+  const c=generate({target,claudeEnabled:false,splitApps:[]});
+  assert.ok(!c['proxy-groups'].some(g=>['Claude','ChatGPT','AI公共服务'].includes(g.name)));
+  assert.ok(!c.rules.some(r=>/Claude|ChatGPT|AI公共服务/.test(r)));
+});
 const domainMatch=(rule,host)=>{const [type,value]=rule.split(',');return type==='DOMAIN'?value===host:type==='DOMAIN-SUFFIX'?(host===value||host.endsWith('.'+value)):type==='DOMAIN-KEYWORD'?host.includes(value):false;};
 for(const target of ['pc','nikki']) test(`${target}: AI owned and shared endpoints precede cloud, tests and fallbacks`,()=>{
   const c=generate({target});const rules=c.rules;

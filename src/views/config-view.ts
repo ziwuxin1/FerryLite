@@ -182,7 +182,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       cat: "AI 服务（需美国独立家宽 IP · TapNow 默认走香港）",
       apps: [
         { key: "chatgpt", label: "ChatGPT", on: true, relay: true },
-        { key: "claude", label: "Claude（默认启用）", on: true, relay: false },
+        { key: "claude", label: "Claude", on: true, relay: true },
         { key: "gemini", label: "Gemini", on: true, relay: true },
         { key: "perplexity", label: "Perplexity", on: true, relay: true },
         { key: "metaai", label: "Meta AI", on: true, relay: true },
@@ -437,8 +437,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       } }, ["管理域名"]) as HTMLButtonElement;
       const on = el("input", { type: "checkbox" }) as HTMLInputElement;
       on.checked = a.on;
-      on.disabled = a.key === "claude" || isExclusiveApp(a.key);
-      if (a.key === "claude") on.title = "Claude 分流已内置，始终启用；可在右侧管理域名。";
+      on.disabled = isExclusiveApp(a.key);
       const relay = el("input", { type: "checkbox" }) as HTMLInputElement;
       relay.checked = false;
       relay.disabled = true;
@@ -533,7 +532,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
     selectAll.textContent = enabled ? "一键全选（APP + 美国独立 IP 中转）" : "一键全选 APP";
     invertAll.textContent = enabled ? "一键反选（APP + 美国独立 IP 中转）" : "一键反选 APP";
     for (const c of appControls) {
-      c.relay.disabled = !enabled || c.key === "claude" || exchangeKeys.has(c.key) || !canIncludeApp(c.key, exclusiveUnlocked);
+      c.relay.disabled = !enabled || exchangeKeys.has(c.key) || !canIncludeApp(c.key, exclusiveUnlocked);
       c.relayLabel.style.display = c.relay.disabled ? "none" : "";
       if (c.relay.disabled) c.relay.checked = false;
       else if (restoreDefaults) c.relay.checked = APP_CATALOG.flatMap((cat) => cat.apps).find((a) => a.key === c.key)?.relay ?? false;
@@ -545,7 +544,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       class: "btn btn-sm",
       onclick: (): void => {
         for (const c of appControls) {
-          if (c.key === "claude" || !canIncludeApp(c.key, exclusiveUnlocked)) continue;
+          if (!canIncludeApp(c.key, exclusiveUnlocked)) continue;
           c.on.checked = true;
           c.relay.checked = !c.relay.disabled;
         }
@@ -563,7 +562,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       class: "btn btn-sm",
       onclick: (): void => {
         for (const c of appControls) {
-          if (c.key === "claude" || !canIncludeApp(c.key, exclusiveUnlocked)) continue;
+          if (!canIncludeApp(c.key, exclusiveUnlocked)) continue;
           c.on.checked = !c.on.checked;
           c.relay.checked = !c.relay.disabled && !c.relay.checked;
         }
@@ -877,13 +876,15 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       splitApps: appControls
         .filter((c) => c.key !== "claude" && c.on.checked && canIncludeApp(c.key, exclusiveUnlocked) && (!exchangeOnly.checked || exchangeKeys.has(c.key)))
         .map((c) => ({ key: c.key, relay: enableIndep.checked && !c.relay.disabled && c.relay.checked, name: c.name })),
+      claudeEnabled: appControls.find(c => c.key === "claude")!.on.checked,
+      claudeRelay: enableIndep.checked && appControls.find(c => c.key === "claude")!.relay.checked,
       dnsOverride: dnsOverride.checked,
       customGroups: customRows.filter(r => r.enabled.checked).map(r => r.saved!),
     };
     let result = await platform().generateConfig(payload);
     if (domainEdits.size) {
       const { applyGroupDomainEdits } = await import("../yaml-editor");
-      result = { ...result, yaml: applyGroupDomainEdits(result.yaml, domainEdits) };
+      result = { ...result, yaml: applyGroupDomainEdits(result.yaml, new Map([...domainEdits].filter(([name]) => name !== "Claude" || payload.claudeEnabled))) };
     }
     const enabledSites = categorySites.filter(s => s.enabled.checked && (!exchangeOnly.checked || APP_CATALOG.find(c => c.cat === s.category)?.apps.some(a => exchangeKeys.has(a.key))));
     if (enabledSites.length) {
@@ -1056,7 +1057,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       }
       for (const [key, checked] of draft.apps) {
         const control = appControls.find(c => c.key === key);
-        if (control && control.key !== "claude") control.on.checked = checked;
+        if (control) control.on.checked = checked;
       }
       target.value = draft.target; dnsOverride.checked = draft.dnsOverride; updateTarget();
       catAllUpdaters.forEach(update => update());

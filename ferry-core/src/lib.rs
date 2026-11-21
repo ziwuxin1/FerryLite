@@ -80,11 +80,16 @@ pub struct GenerateInput {
     /// 傻瓜式分流（APP 级）：每个启用的 APP 一项；仅配置美国独立IP时 relay=true 才使用它，否则按类别选择机场或直连。空=全按默认规则。
     #[serde(default)]
     pub split_apps: Vec<SplitApp>,
+    /// Older clients always enabled Claude; newer forms expose its selection.
+    #[serde(default = "default_true")]
+    pub claude_enabled: bool,
+    #[serde(default = "default_true")]
+    pub claude_relay: bool,
     #[serde(default)]
     pub custom_groups: Vec<CustomGroup>,
     /// DNS 覆写开关（默认开）：true=dns.enable: true（fake-ip 接管 DNS）；
     /// false=dns.enable: false（机场公告要求关闭 DNS 覆写时用，解析交回系统/上游）。
-    #[serde(default = "default_dns_override")]
+    #[serde(default = "default_true")]
     pub dns_override: bool,
     /// Export destination; omitted by older clients means PC.
     #[serde(default)]
@@ -99,7 +104,7 @@ pub struct GenerateInput {
     pub controller_secret: String,
 }
 
-fn default_dns_override() -> bool {
+fn default_true() -> bool {
     true
 }
 
@@ -197,7 +202,15 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
     }
 
     // Replace template references before inserting credentials or user text.
-    let template = if has_indep { TEMPLATE.replace("美国独立IP", &primary) } else { TEMPLATE.to_string() };
+    let mut template = if has_indep { TEMPLATE.replace("美国独立IP", &primary) } else { TEMPLATE.to_string() };
+    if !input.claude_enabled {
+        template = template.lines().filter(|line| {
+            let line = line.trim();
+            !line.starts_with("- RULE-SET,Claude / Domain,")
+                && !line.starts_with("- AND,((NETWORK,UDP),(RULE-SET,Claude / Domain))")
+                && !line.starts_with("Claude / Domain:")
+        }).collect::<Vec<_>>().join("\n");
+    }
     let mut split_groups = build_split_groups(&input.split_apps, has_indep)
         .replace("美国独立IP", &primary);
     if input.taiwan_node.is_some() {
@@ -211,20 +224,21 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
         split_groups.push_str(&format!("\n  {}", custom::groups(input)));
     }
     split_groups.push_str(&format!("\n  {}", build_refresh_groups(&input.airports, "所有-自动")));
-    split_groups.push_str(&format!("\n  {}", ai::shared_group(&input.split_apps)));
+    split_groups.push_str(&format!("\n  {}", ai::shared_group(&input.split_apps, input.claude_enabled)));
+    let verify_rules = if input.claude_enabled { build_top_rules() } else { String::new() };
     let mut top_rules = if input.taiwan_node.is_some() {
-        format!("{}\n  {}", taiwan::rules(input), build_top_rules())
-    } else { build_top_rules() };
+        format!("{}\n  {}", taiwan::rules(input), verify_rules)
+    } else { verify_rules };
     top_rules = format!("{}\n  {top_rules}", taiwan::media_rules());
     top_rules = format!("{}\n  {top_rules}", build_private_rules());
     let mut yaml = template
         .replace(ANCHOR_PROVIDERS, &providers_block)
         .replace(ANCHOR_PROXY_NODE, &node_block)
-        .replace(ANCHOR_CLAUDE_GROUP, &build_claude_group(has_indep, &primary))
+        .replace(ANCHOR_CLAUDE_GROUP, &if input.claude_enabled { build_claude_group(has_indep, &primary, input.claude_relay) } else { String::new() })
         .replace(ANCHOR_SPLIT_GROUPS, &split_groups)
         .replace(ANCHOR_TOP_RULES, &top_rules)
-        .replace(ANCHOR_SPLIT_RULES, &format!("{}\n  {}\n  {}", custom::rules(input), ai::rules(&input.split_apps), build_split_rules(&input.split_apps)))
-        .replace(ANCHOR_VERIFY_RULES, &build_verify_rules());
+        .replace(ANCHOR_SPLIT_RULES, &format!("{}\n  {}\n  {}", custom::rules(input), ai::rules(&input.split_apps, input.claude_enabled), build_split_rules(&input.split_apps)))
+        .replace(ANCHOR_VERIFY_RULES, &if input.claude_enabled { build_verify_rules() } else { String::new() });
 
     // 无美国独立 IP 时清理模板里的占位引用。
     if !has_indep {
@@ -368,16 +382,14 @@ fn build_node_line(node: &IndependentNode) -> String {
     s
 }
 
-fn build_claude_group(has_indep: bool, primary: &str) -> String {
-    if has_indep {
-        // 美国独立IP 置首位 → 配合 profile.store-selected，新配置默认选中它。各 APP 组由 build_split_groups 另行注入。
-        format!(
-            "- {{name: Claude, type: select, proxies: [{primary}, 直连, 所有-手动, 所有-自动, 香港-自动, 台湾-自动, 日本-自动, 新加坡-自动, 韩国-自动, 美国-自动, 其他-自动, 拒绝], icon: \"https://ferrylite.cc/icons/claude.png\"}}"
-        )
-    } else {
-        // 无独立 IP：Claude 走机场美国节点。
-        "- {name: Claude, type: select, proxies: [美国-自动, 直连, 所有-手动, 所有-自动, 香港-自动, 台湾-自动, 日本-自动, 新加坡-自动, 韩国-自动, 其他-自动, 拒绝], icon: \"https://ferrylite.cc/icons/claude.png\"}".to_string()
+fn build_claude_group(has_indep: bool, primary: &str, relay: bool) -> String {
+    let first = if has_indep && relay { primary } else { "美国-自动" };
+    let mut choices = vec![first];
+    if has_indep && primary != first { choices.push(primary); }
+    for choice in ["直连", "所有-手动", "所有-自动", "香港-自动", "台湾-自动", "日本-自动", "新加坡-自动", "韩国-自动", "美国-自动", "其他-自动", "拒绝"] {
+        if !choices.contains(&choice) { choices.push(choice); }
     }
+    format!("- {{name: Claude, type: select, proxies: [{}], icon: \"https://ferrylite.cc/icons/claude.png\"}}", choices.join(", "))
 }
 
 /// 无独立 IP 时，删掉模板各策略组里对「美国独立IP」的引用（节点未注入，留着会让 mihomo 报错）。
@@ -1305,6 +1317,8 @@ mod tests {
             }],
             split_apps: vec![],
             dns_override: true,
+        claude_enabled: true,
+        claude_relay: true,
             target: ConfigTarget::Pc,
             taiwan_node: None,
             exchange_only: false,

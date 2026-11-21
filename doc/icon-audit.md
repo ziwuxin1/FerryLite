@@ -5,5 +5,5 @@
 - 图标来源：icon.horse；Midjourney、Binance、npm、Unreal Engine、Carrington、ID.me、Perforce 的替代图标来自 Google favicon 服务；OpenAI、Claude、Midjourney、Cursor 的 SVG 来自 @lobehub/icons-static-svg（jsDelivr）。商标属于各品牌。
 - 去除统一白色背景/边框，按资源特征做 CSS 明暗适配；白底资源在深色/浅色模式分别混合显示，深色单色标志随主题反色。
 - SLS 图标源仅返回占位图，备用源返回 404；使用透明文字 SLS，避免假称已找到品牌标志。
-- Claude 原本由核心固定生成，这次只补默认启用的可见入口和域名管理；不额外生成第二个 Claude 策略组。全选/反选、分类选择和旧草稿恢复不关闭这个固定入口。
+- Claude 现在与其他应用一样可勾选、取消，参与全选/反选和草稿恢复。取消后移除专属策略组、域名/IP 规则、规则源和公共组引用；重新勾选只生成一个 Claude 组。旧客户端未传开关时保留默认启用。
 - 自定义域名继续尝试第三方图标，加载失败显示文字；不保证任意外部网站拥有可用 favicon。

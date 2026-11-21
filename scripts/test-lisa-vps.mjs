@@ -21,6 +21,15 @@ const input = {airports:[{name:'机场',url:'https://subscription.example.test/s
     {key:'perforce_hk',name:'Perforce 香港',relay:false},{key:'youtube',name:'YouTube',relay:false}],
   customGroups:[{name:'自定义',domains:['custom.example.test'],country:'hk',exact:false}]};
 
+test('VPS merge respects deselected Claude and retains the ChatGPT VPS default',()=>{
+  const source=JSON.parse(generateConfig(JSON.stringify({...input,claudeEnabled:false}))).yaml;
+  const result=applyLisaVps(source,fixture);
+  const {groups}=readYaml(result);
+  assert.ok(!groups.some(g=>g.name==='Claude'));
+  assert.equal(groups.find(g=>g.name==='ChatGPT').proxies[0],LISA_GROUP);
+  assert.deepEqual(inspectYaml(result).filter(p=>p.severity==='error'),[]);
+});
+
 test('allowlisted credentials reject incomplete nodes and chained transports', () => {
   assert.equal(validateLisaBundle(fixture).nodes.length,3);
   for (const edit of [b=>b.nodes.pop(),b=>b.nodes[0].fingerprint='bad',b=>b.nodes[1]['dialer-proxy']='机场',b=>b.nodes[2].port=443]) {

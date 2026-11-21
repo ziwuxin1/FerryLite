@@ -31,6 +31,8 @@ fn main() {
                     })
                     .collect(),
                 dns_override: true,
+        claude_enabled: true,
+        claude_relay: true,
                 target,
                 taiwan_node: Some(IndependentNode {
                         name: "台湾独立IP".into(),

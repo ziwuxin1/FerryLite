@@ -16,8 +16,8 @@ pub fn media_groups(input: &GenerateInput) -> String {
         ""
     };
     format!(
-        r#"- {{name: 台湾影音-机场, type: url-test, include-all-providers: true, empty-fallback: REJECT, filter: "(?i)(台湾|台灣|🇹🇼|Taiwan|Tai[ -]?Wan|\\bTW(?:\\b|[0-9]))", url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50}}
-  - {{name: 台湾影音, type: select, proxies: [台湾影音-机场{residential}, REJECT]}}"#
+        r#"- {{name: 台湾影音-机场, type: url-test, include-all-providers: true, empty-fallback: REJECT, filter: "(?i)(台湾|台灣|🇹🇼|Taiwan|Tai[ -]?Wan|\\bTW(?:\\b|[0-9]))", url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/tw.svg"}}
+  - {{name: 台湾影音, type: select, proxies: [台湾影音-机场{residential}, REJECT], icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/tw.svg"}}"#
     )
 }
 

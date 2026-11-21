@@ -39,7 +39,9 @@ export function applyLisaVps(source: string, input: LisaBundle, defaults: readon
     const choices = defaults.includes(g.name) ? [LISA_GROUP, ...current] : [...current, LISA_GROUP];
     doc.setIn(["proxy-groups", g.index, "proxies"], [...new Set(choices)]);
   }
-  groupList.add(doc.createNode({ name: LISA_GROUP, type: "select", proxies: bundle.nodes.map(n => n.name) }));
+  groupList.add(doc.createNode({ name: LISA_GROUP, type: "select",
+    icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/us.svg",
+    proxies: bundle.nodes.map(n => n.name) }));
   const output = doc.toString({ lineWidth: 0 });
   const error = inspectYaml(output).find(p => p.severity === "error");
   if (error) throw new Error(`丽萨 VPS 合并失败：${error.message}`);

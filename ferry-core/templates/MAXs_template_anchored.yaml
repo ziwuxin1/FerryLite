@@ -141,7 +141,7 @@ proxy-groups:
   # <<CLAUDE_GROUP>>
   # 傻瓜式分流：每个启用的 APP 一个独立 select 组（组名=APP 名），用户在 zashboard 里逐个切换出口。
   # <<INJECT_SPLIT_GROUPS>>
-  - {name: Test, <<: *default, proxies: [美国独立IP,直连,所有-手动,所有-自动,香港-自动,台湾-自动,日本-自动,新加坡-自动,韩国-自动,美国-自动,其他-自动,拒绝]}
+  - {name: Test, <<: *default, proxies: [美国独立IP,直连,所有-手动,所有-自动,香港-自动,台湾-自动,日本-自动,新加坡-自动,韩国-自动,美国-自动,其他-自动,拒绝], icon: "https://icon.horse/icon/speedtest.net"}
   - {name: 国外, <<: *default, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/un.svg", proxies: [香港-自动,直连,所有-手动,所有-自动,台湾-自动,日本-自动,新加坡-自动,韩国-自动,美国-自动,美国独立IP,其他-自动,拒绝]}
   - {name: 国内, <<: *default, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/cn.svg"}
   - {name: 其他, <<: *default, icon: "https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/un.svg", proxies: [香港-自动,直连,所有-手动,所有-自动,台湾-自动,日本-自动,新加坡-自动,韩国-自动,美国-自动,美国独立IP,其他-自动,拒绝]}

@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 
-// 网页版（纯静态）构建：入口在 web/，但要复用仓库根 src/ 下的共享表单与样式，
-// 所以 root 设在 web/ 并放开上级目录访问。产物是能丢到任何静态托管的一堆文件。
+// 浏览器前端构建。build:web 随后打包 api/exclusive.mjs；专属解锁需要 Node 服务端。
 export default defineConfig({
   root: "web",
   base: "/",

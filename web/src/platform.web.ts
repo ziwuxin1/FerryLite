@@ -1,7 +1,7 @@
 // 网页版平台实现：生成走 WASM（ferry-core 编译产物，与桌面版同源），落地走浏览器下载。
 //
-// 全程没有服务端：机场订阅链接、独立 IP 的账号密码都只在这个页面的内存里待一会儿，
-// 算完直接变成一个下载文件，不发往任何地方。
+// 配置生成仍在浏览器本地：机场订阅和用户填写的代理信息不上传。
+// 专属解锁单独向同源接口提交共享代码，成功后领取管理员配置的 VPS 节点。
 
 import type { GenerateInput, GenerateResult } from "../../src/api";
 import type { Platform } from "../../src/platform";

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { SITE_CATALOG, SITES } from '../src/site-catalog.ts';
-import { canIncludeApp, matchesExclusiveCode } from '../src/exclusive-options.ts';
+import { canIncludeApp } from '../src/exclusive-options.ts';
 import { addSites, applyAddedSites, applyGroupDomainEdits, completeSiteDomains, inspectYaml, normalizeDomain, normalizeDomains, readYaml, removeDomainRule, renameGroupDomainEdits, safeFix, setDefaultExit, setGroupIcon, siteSuggestion } from '../src/yaml-editor.ts';
 
 const original = `# keep this comment
@@ -76,10 +76,7 @@ test('runtime resources exclude country storefronts, unrelated products and shar
   }
 });
 
-test('exclusive options require the code and stay excluded from locked selection', async () => {
-  assert.equal(await matchesExclusiveCode('wrong-code'), false);
-  assert.equal(await matchesExclusiveCode(''), false);
-  assert.equal(await matchesExclusiveCode('181501'), true);
+test('exclusive options stay excluded from locked selection', () => {
   assert.deepEqual(['youtube', 'maxsacademy', 'perforce', 'perforce_hk'].filter(key => canIncludeApp(key, false)), ['youtube']);
   assert.deepEqual(['youtube', 'maxsacademy', 'perforce', 'perforce_hk'].filter(key => canIncludeApp(key, true)), ['youtube', 'maxsacademy', 'perforce', 'perforce_hk']);
 });

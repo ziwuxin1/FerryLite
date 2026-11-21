@@ -4,7 +4,8 @@ import { el } from "../dom";
 import { platform } from "../platform";
 import type { GroupDomainEdit } from "../yaml-editor";
 import type { CategorySite } from "./category-sites";
-import { canIncludeApp, isExclusiveApp, matchesExclusiveCode } from "../exclusive-options";
+import { canIncludeApp, isExclusiveApp, unlockExclusive } from "../exclusive-options";
+import type { LisaBundle } from "../lisa-vps-data";
 import { SITE_CATALOG } from "../site-catalog";
 import { domainLogo } from "./site-logo";
 import { loadRoutingDraft, saveRoutingDraft, clearRoutingDraft } from "../routing-draft";
@@ -20,6 +21,7 @@ interface AirportRow {
 export function renderConfigView(root: HTMLElement, guided = false): void {
   const status = el("div", { class: "status-line" });
   let exclusiveUnlocked = false;
+  let lisaBundle: LisaBundle | null = null;
   let persistDraft = (): void => {};
   let refreshDesign = (): void => {};
   const storageStatus = el("div", { class: "field-hint", role: "status", "aria-live": "polite" });
@@ -250,7 +252,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       ],
     },
     { cat: "Perforce（默认走机场）", apps: [
-      { key: "perforce", label: "Perforce 美国（默认美国自动）", on: true, relay: false },
+      { key: "perforce", label: "Perforce 美国", on: true, relay: false },
       { key: "perforce_hk", label: "Perforce 香港（默认香港自动）", on: false, relay: false },
     ] },
     { cat: "Parsec（远程桌面 / 串流 · 无需独立家宽 IP）", apps: [{ key: "parsec", label: "Parsec 远程桌面", on: true, relay: false }] },
@@ -576,17 +578,20 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
   const unlock = el("button", { type: "button", class: "btn primary", onclick: async () => {
     unlock.disabled = true;
     try {
-      if (!await matchesExclusiveCode(mysteryCode.value)) { unlockStatus.textContent = "神秘代码不正确，请重试。"; unlockStatus.className = "status-line err"; return; }
+      const loaded = await unlockExclusive(mysteryCode.value, fetch, platform().kind === "web" ? "/api/exclusive" : "https://ferrylite.cc/api/exclusive");
+      if (!loaded) { unlockStatus.textContent = "神秘代码不正确，请重试。"; unlockStatus.className = "status-line err"; return; }
+      lisaBundle = loaded;
       exclusiveUnlocked = true;
+      targetRevision++; refreshExportState();
       for (const c of appControls.filter(c => isExclusiveApp(c.key))) c.on.disabled = false;
       splitSections.forEach((section, i) => { section.hidden = !exclusiveUnlocked && APP_CATALOG[i].apps.some(a => isExclusiveApp(a.key)); });
       catAllUpdaters.forEach(fn => fn()); updateUsRelay();
       mysteryCode.value = ""; mysteryCode.hidden = true; unlock.hidden = true;
-      unlockStatus.textContent = "麦壳思专属配置已解锁：自家官网、Perforce。刷新页面或一键 Reset 后重新隐藏。";
+      unlockStatus.textContent = "已加入丽萨洛杉矶VPS（HY2 / SS2022 / Reality）。ChatGPT、Claude、Perforce 美国默认使用 VPS；其他应用保留原出口，并可切换到 VPS。机场香港、台湾等线路继续保留。刷新或 Reset 后需重新解锁。";
       unlockStatus.className = "status-line ok";
       setStatus("已解锁专属配置，请重新生成 YAML 应用更改。", "ok");
       refreshDesign();
-    } catch { unlockStatus.textContent = "暂时无法校验代码，请刷新后重试。"; }
+    } catch (error) { unlockStatus.textContent = error instanceof Error ? error.message : "暂时无法校验代码，请刷新后重试。"; unlockStatus.className = "status-line err"; }
     finally { unlock.disabled = false; }
   } }, ["解锁专属配置"]) as HTMLButtonElement;
   mysteryCode.onkeydown = (event) => { if (event.key === "Enter") { event.preventDefault(); unlock.click(); } };
@@ -834,6 +839,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
   }
 
   async function generateCurrent(): Promise<GenerateResult> {
+    const unlockedBundle = exclusiveUnlocked ? lisaBundle : null;
     const parsedPort = Number(port.value);
     const airports = airportRows
       .map((r) => ({ name: r.name.value.trim(), url: r.url.value.trim() }))
@@ -884,6 +890,10 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       const siteEdits = new Map([...domainEdits].filter(([name]) => enabledSites.some(site => site.name === name)));
       result = { ...result, yaml: applyGroupDomainEdits(result.yaml, siteEdits) };
     }
+    if (unlockedBundle) {
+      const { applyLisaVps } = await import("../lisa-vps");
+      result = { ...result, yaml: applyLisaVps(result.yaml, unlockedBundle) };
+    }
     return result;
   }
 
@@ -920,7 +930,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       }
       setStatus("✅ 已生成并通过校验。可在下方直接预览、编辑，再保存 YAML。", "ok");
       refreshExportState();
-      if (!exportIsCurrent()) setStatus("生成期间切换了导出版本，请重新生成当前版本。", "warn");
+      if (!exportIsCurrent()) setStatus("生成期间配置选项发生变化，请重新生成。", "warn");
       previewCard.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {
       setStatus(`❌ ${e instanceof Error ? e.message : String(e)}`, "err");

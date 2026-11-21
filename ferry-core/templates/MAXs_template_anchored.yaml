@@ -165,6 +165,7 @@ rules:
   # <<INJECT_SPLIT_RULES>>
   # Claude 规则提到最前（在 TEST/Check 之前）：确保 Claude 域名永远优先走 Claude 组→独立IP，绝不被 Check.list 抢去机场。
   - RULE-SET,Claude / Domain,Claude
+  - AND,((NETWORK,UDP),(RULE-SET,Claude / Domain)),REJECT
   - RULE-SET,TEST / Domain,Test
   # 分流规则已按「每个 APP 独立策略组」在上方生成；此处仅保留 Claude / 测试 / 兜底。
   - RULE-SET,Proxy / Domain,国外
@@ -187,7 +188,7 @@ rule-anchor:
 rule-providers:
   TEST / Domain: {<<: *class, url: "https://gh-proxy.com/raw.githubusercontent.com/liandu2024/clash/refs/heads/main/list/Check.list"}
   ChatGPT / Domain: {<<: *domain, url: "https://gh-proxy.com/github.com/metacubex/meta-rules-dat/raw/refs/heads/meta/geo/geosite/openai.mrs"}
-  Claude / Domain: {<<: *class, url: "https://gh-proxy.com/raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/Claude/Claude.list"}
+  Claude / Domain: {<<: *domain, url: "https://gh-proxy.com/github.com/metacubex/meta-rules-dat/raw/refs/heads/meta/geo/geosite/anthropic.mrs"}
   Meta AI / Domain: {<<: *class, url: "https://gh-proxy.com/raw.githubusercontent.com/liandu2024/clash/refs/heads/main/list/MetaAi.list"}
   Perplexity / Domain: {<<: *domain, url: "https://gh-proxy.com/github.com/metacubex/meta-rules-dat/raw/refs/heads/meta/geo/geosite/perplexity.mrs"}
   Copilot / Domain: {<<: *class, url: "https://gh-proxy.com/raw.githubusercontent.com/liandu2024/clash/refs/heads/main/list/Copilot.list"}

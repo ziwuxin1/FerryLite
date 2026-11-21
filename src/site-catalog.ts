@@ -1,9 +1,10 @@
+import AI_ROUTING from "../ferry-core/data/ai-routing.json" with { type: "json" };
 // Curated service resources, not a crawl or a country-domain expansion.
 // Root suffixes cover API/CDN subdomains; additional roots require a reviewed source.
 // See doc/site-domain-catalog.md for scope and maintenance.
 export interface SitePreset { key: string; name: string; aliases: string[]; domains: string[]; ipCidrs?: string[]; exclusive?: boolean; sources: string[] }
 export const SITE_CATALOG: SitePreset[] = [
-  {"key":"chatgpt","name":"ChatGPT","aliases":["chatgpt","ChatGPT"],"domains":["chatgpt.com","openai.com","oaistatic.com","oaiusercontent.com","chatgpt.livekit.cloud","openaiassets.blob.core.windows.net","openaicom.imgix.net"],"sources":["https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geo/geosite/openai.list"]},
+  {key:"chatgpt",name:"ChatGPT",aliases:["chatgpt","ChatGPT","OpenAI","Codex"],domains:[...AI_ROUTING.chatgpt.suffixes,...AI_ROUTING.chatgpt.domains],sources:[AI_ROUTING.sources.chatgpt]},
   {"key":"gemini","name":"Gemini","aliases":["gemini","Gemini"],"domains":["gemini.google.com","gemini-pa.googleapis.com","robinfrontend-pa.googleapis.com","proactivebackend-pa.googleapis.com","generativelanguage.googleapis.com","aistudio.google.com","aistudio-pa.clients6.google.com"],"sources":["https://gh-proxy.com/raw.githubusercontent.com/liandu2024/clash/refs/heads/main/list/Gemini.list"]},
   {"key":"perplexity","name":"Perplexity","aliases":["perplexity","Perplexity"],"domains":["perplexity.ai","perplexity.com","pplx.ai","ppl-ai-file-upload.s3.amazonaws.com","pplx-res.cloudinary.com"],"sources":["https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geo/geosite/perplexity.list"]},
   {"key":"metaai","name":"Meta AI","aliases":["metaai","Meta AI"],"domains":["meta.ai"],"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"]},
@@ -139,7 +140,7 @@ export const SITE_CATALOG: SitePreset[] = [
   {"key":"playstation","name":"PlayStation","aliases":["playstation","PlayStation"],"domains":["playstation.com","playstation.net","playstationnetwork.com","sonyentertainmentnetwork.com"],"sources":["https://gh-proxy.com/raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/PlayStation/PlayStation.list"]},
   {"key":"nintendo","name":"Nintendo 任天堂","aliases":["nintendo","Nintendo 任天堂","任天堂"],"domains":["nintendo.com","nintendo.net","nintendonetwork.net","nintendowifi.net"],"sources":["https://gh-proxy.com/raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Nintendo/Nintendo.list"]},
   {"key":"riot","name":"Riot 拳头","aliases":["riot","Riot 拳头","拳头"],"domains":["riotgames.com","leagueoflegends.com","riotcdn.net","rstatic.net","lolstatic.com","lolusercontent.com","lolstatic-a.akamaihd.net"],"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS","https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/riot.list"]},
-  {"key":"claude","name":"Claude","aliases":["claude","Anthropic"],"domains":["claude.ai","anthropic.com"],"sources":["https://gh-proxy.com/raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/Claude/Claude.list"]},
+  {key:"claude",name:"Claude",aliases:["claude","Anthropic","Claude Code"],domains:[...AI_ROUTING.claude.suffixes,...AI_ROUTING.claude.domains],sources:[AI_ROUTING.sources.claude]},
   {"key":"ferrylite","name":"FerryLite","aliases":["ferrylite","ferry"],"domains":["ferrylite.cc"],"sources":["project"]},
 ];
 export const SITES = SITE_CATALOG.filter(site => !site.exclusive);

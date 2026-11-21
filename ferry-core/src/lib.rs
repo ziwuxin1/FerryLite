@@ -9,6 +9,7 @@ use std::collections::HashSet;
 mod profiles;
 mod taiwan;
 mod custom;
+mod ai;
 pub use custom::CustomGroup;
 pub use profiles::ConfigTarget;
 
@@ -210,6 +211,7 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
         split_groups.push_str(&format!("\n  {}", custom::groups(input)));
     }
     split_groups.push_str(&format!("\n  {}", build_refresh_groups(&input.airports, "所有-自动")));
+    split_groups.push_str(&format!("\n  {}", ai::shared_group(&input.split_apps)));
     let mut top_rules = if input.taiwan_node.is_some() {
         format!("{}\n  {}", taiwan::rules(input), build_top_rules())
     } else { build_top_rules() };
@@ -221,7 +223,7 @@ pub fn inject(input: &GenerateInput) -> Result<String, String> {
         .replace(ANCHOR_CLAUDE_GROUP, &build_claude_group(has_indep, &primary))
         .replace(ANCHOR_SPLIT_GROUPS, &split_groups)
         .replace(ANCHOR_TOP_RULES, &top_rules)
-        .replace(ANCHOR_SPLIT_RULES, &format!("{}\n  {}", custom::rules(input), build_split_rules(&input.split_apps)))
+        .replace(ANCHOR_SPLIT_RULES, &format!("{}\n  {}\n  {}", custom::rules(input), ai::rules(&input.split_apps), build_split_rules(&input.split_apps)))
         .replace(ANCHOR_VERIFY_RULES, &build_verify_rules());
 
     // 无美国独立 IP 时清理模板里的占位引用。
@@ -436,6 +438,7 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
             // 核心 AI 服务：RULE-SET（外部维护）+ 内联域名兜底（规则集源失效时分流不静默丢失）。
             "chatgpt" => {
                 rules.push(format!("- RULE-SET,ChatGPT / Domain,{t}"));
+                rules.push("- AND,((NETWORK,UDP),(RULE-SET,ChatGPT / Domain)),REJECT".into());
                 // sora.com 为 Sora 独立域名，外部规则集未必收录，内联补上。
                 for d in ["openai.com", "chatgpt.com", "oaistatic.com", "sora.com"] {
                     rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));

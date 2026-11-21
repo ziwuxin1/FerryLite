@@ -30,6 +30,7 @@
 .tool-page textarea, .tool-page select { color: var(--ink); background-color: var(--panel-2); }
 .tool-page[data-theme="dark"] .btn.primary,
 .tool-page[data-theme="dark"] .site-badge { color: #161616; }
+.tool-page[data-theme="dark"] .site-logo { color: var(--ink); }
 .tool-page[data-theme="dark"] a:not(.tool-home-link) { color: #f5ce4d; }
 .tool-header-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .topbar.brand.web-tool-header {

@@ -72,7 +72,7 @@ export function renderGroupDomainManager(host: HTMLElement, apps: { name: string
   select.onchange = () => { domains.value = ""; site.value = ""; replaceLogo.checked = false; note.textContent = ""; render(); updateHeading(); };
   const content = el("div", { style: "margin-top:14px" });
   content.append(el("div", { class: "field", hidden: apps.length === 1 }, [el("label", {}, ["选择策略组"]), select]),
-    el("div", { class: "field-hint" }, ["仅启用的 APP 会写入生成结果。这里列出域名、IP 规则和远程规则集绑定；规则集内容由客户端下载，不在网页展开。IP 规则匹配所列地址或网段的所有端口。删除某条规则不等于阻止访问，流量仍按其余规则匹配。Logo 从 icon.horse 获取，失败时尝试 Google 图标服务，仅发送域名；找不到时显示首字母。"]),
+    el("div", { class: "field-hint" }, ["仅启用的 APP 会写入生成结果。这里列出域名、IP 规则和远程规则集绑定；规则集内容由客户端下载，不在网页展开。IP 规则匹配所列地址或网段的所有端口。删除某条规则不等于阻止访问，流量仍按其余规则匹配。内置站点使用本站图标；其他域名尝试第三方图标服务，仅发送域名，找不到时显示文字。"]),
     list, site, suggestions, btn("补全本站相关域名", fill),
     el("div", { class: "field-hint" }, ["输入网站名称或常用别名后按 Enter，补全该站已知的 API、CDN 和资源域名，不枚举各国站点。主域名包含全部子域名，无需逐条填写 api、cdn、static。点击“添加域名”写入当前组。"]), domains,
     el("label", { class: "checkbox-row" }, [replaceLogo, "同时用首个域名 Logo 替换本组图标"]),

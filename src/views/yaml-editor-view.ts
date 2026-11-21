@@ -151,7 +151,7 @@ export function renderYamlEditor(root: HTMLElement) {
       field("追加域名", domains), field("匹配方式", exact),
       el("label", { class: "checkbox-row" }, [createNew, "为这些站点新建独立策略组"]), newFields,
       el("label", { class: "checkbox-row" }, [replaceIcon, "用本站 Logo 替换已有组图标（未勾选时保留原图标）"]),
-      el("div", { class: "field-hint" }, ["域名 Logo 从 icon.horse 获取，失败时尝试 Google 图标服务，仅发送域名，找不到时显示首字母。缺少组 Logo 时自动以首个域名补齐；一个策略组只有一个 Logo，同组追加站点默认保留原图标。"]),
+      el("div", { class: "field-hint" }, ["内置站点使用本站图标；其他域名尝试第三方图标服务，仅发送域名，找不到时显示文字。缺少组 Logo 时自动以首个域名补齐；一个策略组只有一个 Logo，同组追加站点默认保留原图标。"]),
       el("div", { class: "btn-row" }, [
         button("添加站点到策略组", () => run(() => {
           const result = addSites(text(), { target: groupSelect.value, text: domains.value, exact: exact.value === "exact", replaceIcon: replaceIcon.checked, ...(createNew.checked ? { newGroup: { name: newName.value, upstream: upstream.value } } : {}) });

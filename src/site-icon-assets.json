@@ -1,0 +1,566 @@
+{
+  "gemini.google.com": {
+    "src": "/icons/sites/gemini.google.com.png",
+    "tone": "color"
+  },
+  "perplexity.ai": {
+    "src": "/icons/sites/perplexity.ai.png",
+    "tone": "color"
+  },
+  "meta.ai": {
+    "src": "/icons/sites/meta.ai.png",
+    "tone": "color"
+  },
+  "copilot.microsoft.com": {
+    "src": "/icons/sites/copilot.microsoft.com.png",
+    "tone": "color"
+  },
+  "tapnow.ai": {
+    "src": "/icons/sites/tapnow.ai.png",
+    "tone": "color"
+  },
+  "midjourney.com": {
+    "src": "/icons/sites/midjourney.svg",
+    "tone": "mono"
+  },
+  "grok.com": {
+    "src": "/icons/sites/grok.com.png",
+    "tone": "color"
+  },
+  "cursor.com": {
+    "src": "/icons/sites/cursor.svg",
+    "tone": "mono"
+  },
+  "maxsacademy.com": {
+    "src": "/icons/sites/maxsacademy.com.png",
+    "tone": "color"
+  },
+  "google.com": {
+    "src": "/icons/sites/google.com.png",
+    "tone": "color"
+  },
+  "apple.com": {
+    "src": "/icons/sites/apple.com.png",
+    "tone": "paper"
+  },
+  "microsoft.com": {
+    "src": "/icons/sites/microsoft.com.png",
+    "tone": "color"
+  },
+  "youtube.com": {
+    "src": "/icons/sites/youtube.com.png",
+    "tone": "color"
+  },
+  "netflix.com": {
+    "src": "/icons/sites/netflix.com.png",
+    "tone": "color"
+  },
+  "disneyplus.com": {
+    "src": "/icons/sites/disneyplus.com.png",
+    "tone": "color"
+  },
+  "max.com": {
+    "src": "/icons/sites/max.com.png",
+    "tone": "color"
+  },
+  "spotify.com": {
+    "src": "/icons/sites/spotify.com.png",
+    "tone": "color"
+  },
+  "twitch.tv": {
+    "src": "/icons/sites/twitch.tv.png",
+    "tone": "color"
+  },
+  "robinhood.com": {
+    "src": "/icons/sites/robinhood.com.png",
+    "tone": "color"
+  },
+  "webull.com": {
+    "src": "/icons/sites/webull.com.png",
+    "tone": "color"
+  },
+  "interactivebrokers.com": {
+    "src": "/icons/sites/interactivebrokers.com.png",
+    "tone": "color"
+  },
+  "schwab.com": {
+    "src": "/icons/sites/schwab.com.png",
+    "tone": "color"
+  },
+  "fidelity.com": {
+    "src": "/icons/sites/fidelity.com.png",
+    "tone": "color"
+  },
+  "etrade.com": {
+    "src": "/icons/sites/etrade.com.png",
+    "tone": "color"
+  },
+  "vanguard.com": {
+    "src": "/icons/sites/vanguard.com.png",
+    "tone": "paper"
+  },
+  "merrilledge.com": {
+    "src": "/icons/sites/merrilledge.com.png",
+    "tone": "mono"
+  },
+  "coinbase.com": {
+    "src": "/icons/sites/coinbase.com.png",
+    "tone": "color"
+  },
+  "kraken.com": {
+    "src": "/icons/sites/kraken.com.png",
+    "tone": "color"
+  },
+  "gemini.com": {
+    "src": "/icons/sites/gemini.com.png",
+    "tone": "color"
+  },
+  "crypto.com": {
+    "src": "/icons/sites/crypto.com.png",
+    "tone": "color"
+  },
+  "binance.com": {
+    "src": "/icons/sites/binance.com.png",
+    "tone": "color"
+  },
+  "okx.com": {
+    "src": "/icons/sites/okx.com.png",
+    "tone": "color"
+  },
+  "bybit.com": {
+    "src": "/icons/sites/bybit.com.png",
+    "tone": "color"
+  },
+  "kucoin.com": {
+    "src": "/icons/sites/kucoin.com.png",
+    "tone": "color"
+  },
+  "gate.io": {
+    "src": "/icons/sites/gate.io.png",
+    "tone": "color"
+  },
+  "bitget.com": {
+    "src": "/icons/sites/bitget.com.png",
+    "tone": "color"
+  },
+  "parsec.app": {
+    "src": "/icons/sites/parsec.app.png",
+    "tone": "color"
+  },
+  "tiktok.com": {
+    "src": "/icons/sites/tiktok.com.png",
+    "tone": "color"
+  },
+  "telegram.org": {
+    "src": "/icons/sites/telegram.org.png",
+    "tone": "color"
+  },
+  "x.com": {
+    "src": "/icons/sites/x.com.png",
+    "tone": "color"
+  },
+  "whatsapp.com": {
+    "src": "/icons/sites/whatsapp.com.png",
+    "tone": "color"
+  },
+  "facebook.com": {
+    "src": "/icons/sites/facebook.com.png",
+    "tone": "color"
+  },
+  "instagram.com": {
+    "src": "/icons/sites/instagram.com.png",
+    "tone": "color"
+  },
+  "discord.com": {
+    "src": "/icons/sites/discord.com.png",
+    "tone": "color"
+  },
+  "reddit.com": {
+    "src": "/icons/sites/reddit.com.png",
+    "tone": "color"
+  },
+  "github.com": {
+    "src": "/icons/sites/github.com.png",
+    "tone": "mono"
+  },
+  "gitlab.com": {
+    "src": "/icons/sites/gitlab.com.png",
+    "tone": "color"
+  },
+  "stackoverflow.com": {
+    "src": "/icons/sites/stackoverflow.com.png",
+    "tone": "color"
+  },
+  "npmjs.com": {
+    "src": "/icons/sites/npmjs.com.png",
+    "tone": "color"
+  },
+  "docker.com": {
+    "src": "/icons/sites/docker.com.png",
+    "tone": "color"
+  },
+  "pypi.org": {
+    "src": "/icons/sites/pypi.org.png",
+    "tone": "color"
+  },
+  "huggingface.co": {
+    "src": "/icons/sites/huggingface.co.png",
+    "tone": "color"
+  },
+  "vercel.com": {
+    "src": "/icons/sites/vercel.com.png",
+    "tone": "color"
+  },
+  "netlify.com": {
+    "src": "/icons/sites/netlify.com.png",
+    "tone": "mono"
+  },
+  "atlassian.com": {
+    "src": "/icons/sites/atlassian.com.png",
+    "tone": "color"
+  },
+  "bitbucket.org": {
+    "src": "/icons/sites/bitbucket.org.png",
+    "tone": "color"
+  },
+  "replit.com": {
+    "src": "/icons/sites/replit.com.png",
+    "tone": "paper"
+  },
+  "artstation.com": {
+    "src": "/icons/sites/artstation.com.png",
+    "tone": "color"
+  },
+  "pinterest.com": {
+    "src": "/icons/sites/pinterest.com.png",
+    "tone": "color"
+  },
+  "behance.net": {
+    "src": "/icons/sites/behance.net.png",
+    "tone": "color"
+  },
+  "sketchfab.com": {
+    "src": "/icons/sites/sketchfab.com.png",
+    "tone": "color"
+  },
+  "cgtrader.com": {
+    "src": "/icons/sites/cgtrader.com.png",
+    "tone": "color"
+  },
+  "turbosquid.com": {
+    "src": "/icons/sites/turbosquid.com.png",
+    "tone": "color"
+  },
+  "quixel.com": {
+    "src": "/icons/sites/quixel.com.png",
+    "tone": "mono"
+  },
+  "gumroad.com": {
+    "src": "/icons/sites/gumroad.com.png",
+    "tone": "color"
+  },
+  "deviantart.com": {
+    "src": "/icons/sites/deviantart.com.png",
+    "tone": "color"
+  },
+  "dribbble.com": {
+    "src": "/icons/sites/dribbble.com.png",
+    "tone": "color"
+  },
+  "adobe.com": {
+    "src": "/icons/sites/adobe.com.png",
+    "tone": "color"
+  },
+  "unrealengine.com": {
+    "src": "/icons/sites/unrealengine.com.png",
+    "tone": "mono"
+  },
+  "fab.com": {
+    "src": "/icons/sites/fab.com.png",
+    "tone": "mono"
+  },
+  "unity.com": {
+    "src": "/icons/sites/unity.com.png",
+    "tone": "color"
+  },
+  "therookies.co": {
+    "src": "/icons/sites/therookies.co.png",
+    "tone": "color"
+  },
+  "figma.com": {
+    "src": "/icons/sites/figma.com.png",
+    "tone": "color"
+  },
+  "chase.com": {
+    "src": "/icons/sites/chase.com.png",
+    "tone": "color"
+  },
+  "bankofamerica.com": {
+    "src": "/icons/sites/bankofamerica.com.png",
+    "tone": "paper"
+  },
+  "wellsfargo.com": {
+    "src": "/icons/sites/wellsfargo.com.png",
+    "tone": "color"
+  },
+  "citi.com": {
+    "src": "/icons/sites/citi.com.png",
+    "tone": "color"
+  },
+  "capitalone.com": {
+    "src": "/icons/sites/capitalone.com.png",
+    "tone": "paper"
+  },
+  "americanexpress.com": {
+    "src": "/icons/sites/americanexpress.com.png",
+    "tone": "color"
+  },
+  "discover.com": {
+    "src": "/icons/sites/discover.com.png",
+    "tone": "color"
+  },
+  "usbank.com": {
+    "src": "/icons/sites/usbank.com.png",
+    "tone": "color"
+  },
+  "pnc.com": {
+    "src": "/icons/sites/pnc.com.png",
+    "tone": "color"
+  },
+  "ally.com": {
+    "src": "/icons/sites/ally.com.png",
+    "tone": "color"
+  },
+  "shellpointmtg.com": {
+    "src": "/icons/sites/shellpointmtg.com.png",
+    "tone": "color"
+  },
+  "newrez.com": {
+    "src": "/icons/sites/newrez.com.png",
+    "tone": "color"
+  },
+  "rocketmortgage.com": {
+    "src": "/icons/sites/rocketmortgage.com.png",
+    "tone": "paper"
+  },
+  "mrcooper.com": {
+    "src": "/icons/sites/mrcooper.com.png",
+    "tone": "color"
+  },
+  "pennymac.com": {
+    "src": "/icons/sites/pennymac.com.png",
+    "tone": "color"
+  },
+  "freedommortgage.com": {
+    "src": "/icons/sites/freedommortgage.com.png",
+    "tone": "color"
+  },
+  "loandepot.com": {
+    "src": "/icons/sites/loandepot.com.png",
+    "tone": "color"
+  },
+  "sofi.com": {
+    "src": "/icons/sites/sofi.com.png",
+    "tone": "color"
+  },
+  "carringtonms.com": {
+    "src": "/icons/sites/carringtonms.com.png",
+    "tone": "color"
+  },
+  "salliemae.com": {
+    "src": "/icons/sites/salliemae.com.png",
+    "tone": "paper"
+  },
+  "navient.com": {
+    "src": "/icons/sites/navient.com.png",
+    "tone": "paper"
+  },
+  "statefarm.com": {
+    "src": "/icons/sites/statefarm.com.png",
+    "tone": "paper"
+  },
+  "geico.com": {
+    "src": "/icons/sites/geico.com.png",
+    "tone": "paper"
+  },
+  "progressive.com": {
+    "src": "/icons/sites/progressive.com.png",
+    "tone": "color"
+  },
+  "allstate.com": {
+    "src": "/icons/sites/allstate.com.png",
+    "tone": "color"
+  },
+  "usaa.com": {
+    "src": "/icons/sites/usaa.com.png",
+    "tone": "color"
+  },
+  "libertymutual.com": {
+    "src": "/icons/sites/libertymutual.com.png",
+    "tone": "color"
+  },
+  "farmers.com": {
+    "src": "/icons/sites/farmers.com.png",
+    "tone": "color"
+  },
+  "nationwide.com": {
+    "src": "/icons/sites/nationwide.com.png",
+    "tone": "color"
+  },
+  "travelers.com": {
+    "src": "/icons/sites/travelers.com.png",
+    "tone": "color"
+  },
+  "amfam.com": {
+    "src": "/icons/sites/amfam.com.png",
+    "tone": "paper"
+  },
+  "erieinsurance.com": {
+    "src": "/icons/sites/erieinsurance.com.png",
+    "tone": "paper"
+  },
+  "thehartford.com": {
+    "src": "/icons/sites/thehartford.com.png",
+    "tone": "mono"
+  },
+  "mercuryinsurance.com": {
+    "src": "/icons/sites/mercuryinsurance.com.png",
+    "tone": "color"
+  },
+  "lemonade.com": {
+    "src": "/icons/sites/lemonade.com.png",
+    "tone": "color"
+  },
+  "hippo.com": {
+    "src": "/icons/sites/hippo.com.png",
+    "tone": "color"
+  },
+  "amazon.com": {
+    "src": "/icons/sites/amazon.com.png",
+    "tone": "color"
+  },
+  "ebay.com": {
+    "src": "/icons/sites/ebay.com.png",
+    "tone": "paper"
+  },
+  "walmart.com": {
+    "src": "/icons/sites/walmart.com.png",
+    "tone": "color"
+  },
+  "bestbuy.com": {
+    "src": "/icons/sites/bestbuy.com.png",
+    "tone": "color"
+  },
+  "target.com": {
+    "src": "/icons/sites/target.com.png",
+    "tone": "color"
+  },
+  "costco.com": {
+    "src": "/icons/sites/costco.com.png",
+    "tone": "paper"
+  },
+  "newegg.com": {
+    "src": "/icons/sites/newegg.com.png",
+    "tone": "color"
+  },
+  "homedepot.com": {
+    "src": "/icons/sites/homedepot.com.png",
+    "tone": "color"
+  },
+  "expedia.com": {
+    "src": "/icons/sites/expedia.com.png",
+    "tone": "color"
+  },
+  "irs.gov": {
+    "src": "/icons/sites/irs.gov.png",
+    "tone": "paper"
+  },
+  "usps.com": {
+    "src": "/icons/sites/usps.com.png",
+    "tone": "paper"
+  },
+  "uscis.gov": {
+    "src": "/icons/sites/uscis.gov.png",
+    "tone": "color"
+  },
+  "ssa.gov": {
+    "src": "/icons/sites/ssa.gov.png",
+    "tone": "color"
+  },
+  "id.me": {
+    "src": "/icons/sites/id.me.png",
+    "tone": "color"
+  },
+  "login.gov": {
+    "src": "/icons/sites/login.gov.png",
+    "tone": "color"
+  },
+  "steampowered.com": {
+    "src": "/icons/sites/steampowered.com.png",
+    "tone": "color"
+  },
+  "epicgames.com": {
+    "src": "/icons/sites/epicgames.com.png",
+    "tone": "color"
+  },
+  "ea.com": {
+    "src": "/icons/sites/ea.com.png",
+    "tone": "color"
+  },
+  "blizzard.com": {
+    "src": "/icons/sites/blizzard.com.png",
+    "tone": "color"
+  },
+  "ubisoft.com": {
+    "src": "/icons/sites/ubisoft.com.png",
+    "tone": "mono"
+  },
+  "playstation.com": {
+    "src": "/icons/sites/playstation.com.png",
+    "tone": "mono"
+  },
+  "nintendo.com": {
+    "src": "/icons/sites/nintendo.com.png",
+    "tone": "color"
+  },
+  "riotgames.com": {
+    "src": "/icons/sites/riotgames.com.png",
+    "tone": "color"
+  },
+  "ferrylite.cc": {
+    "src": "/icons/sites/ferrylite.cc.png",
+    "tone": "color"
+  },
+  "openai.com": {
+    "src": "/icons/sites/openai.svg",
+    "tone": "mono"
+  },
+  "claude.ai": {
+    "src": "/icons/sites/claude.svg",
+    "tone": "color"
+  },
+  "chatgpt.com": {
+    "src": "/icons/sites/openai.svg",
+    "tone": "mono"
+  },
+  "oaistatic.com": {
+    "src": "/icons/sites/openai.svg",
+    "tone": "mono"
+  },
+  "ant.dev": {
+    "src": "/icons/sites/claude.svg",
+    "tone": "color"
+  },
+  "anthropic.com": {
+    "src": "/icons/sites/claude.svg",
+    "tone": "color"
+  },
+  "claude.com": {
+    "src": "/icons/sites/claude.svg",
+    "tone": "color"
+  },
+  "perforce.com": {
+    "src": "/icons/sites/perforce.com.png",
+    "tone": "color"
+  }
+}

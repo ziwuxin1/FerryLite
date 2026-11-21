@@ -140,7 +140,7 @@ export const SITE_CATALOG: SitePreset[] = [
   {"key":"playstation","name":"PlayStation","aliases":["playstation","PlayStation"],"domains":["playstation.com","playstation.net","playstationnetwork.com","sonyentertainmentnetwork.com"],"sources":["https://gh-proxy.com/raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/PlayStation/PlayStation.list"]},
   {"key":"nintendo","name":"Nintendo 任天堂","aliases":["nintendo","Nintendo 任天堂","任天堂"],"domains":["nintendo.com","nintendo.net","nintendonetwork.net","nintendowifi.net"],"sources":["https://gh-proxy.com/raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Nintendo/Nintendo.list"]},
   {"key":"riot","name":"Riot 拳头","aliases":["riot","Riot 拳头","拳头"],"domains":["riotgames.com","leagueoflegends.com","riotcdn.net","rstatic.net","lolstatic.com","lolusercontent.com","lolstatic-a.akamaihd.net"],"sources":["ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS","https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/riot.list"]},
-  {key:"claude",name:"Claude",aliases:["claude","Anthropic","Claude Code"],domains:[...AI_ROUTING.claude.suffixes,...AI_ROUTING.claude.domains],sources:[AI_ROUTING.sources.claude]},
+  {key:"claude",name:"Claude",aliases:["claude","Anthropic","Claude Code","Claude（默认启用）"],domains:[...AI_ROUTING.claude.suffixes,...AI_ROUTING.claude.domains],sources:[AI_ROUTING.sources.claude]},
   {"key":"ferrylite","name":"FerryLite","aliases":["ferrylite","ferry"],"domains":["ferrylite.cc"],"sources":["project"]},
 ];
 export const SITES = SITE_CATALOG.filter(site => !site.exclusive);

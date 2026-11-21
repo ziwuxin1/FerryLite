@@ -370,11 +370,11 @@ fn build_claude_group(has_indep: bool, primary: &str) -> String {
     if has_indep {
         // 美国独立IP 置首位 → 配合 profile.store-selected，新配置默认选中它。各 APP 组由 build_split_groups 另行注入。
         format!(
-            "- {{name: Claude, type: select, proxies: [{primary}, 直连, 所有-手动, 所有-自动, 香港-自动, 台湾-自动, 日本-自动, 新加坡-自动, 韩国-自动, 美国-自动, 其他-自动, 拒绝]}}"
+            "- {{name: Claude, type: select, proxies: [{primary}, 直连, 所有-手动, 所有-自动, 香港-自动, 台湾-自动, 日本-自动, 新加坡-自动, 韩国-自动, 美国-自动, 其他-自动, 拒绝], icon: \"https://ferrylite.cc/icons/claude.png\"}}"
         )
     } else {
         // 无独立 IP：Claude 走机场美国节点。
-        "- {name: Claude, type: select, proxies: [美国-自动, 直连, 所有-手动, 所有-自动, 香港-自动, 台湾-自动, 日本-自动, 新加坡-自动, 韩国-自动, 其他-自动, 拒绝]}".to_string()
+        "- {name: Claude, type: select, proxies: [美国-自动, 直连, 所有-手动, 所有-自动, 香港-自动, 台湾-自动, 日本-自动, 新加坡-自动, 韩国-自动, 其他-自动, 拒绝], icon: \"https://ferrylite.cc/icons/claude.png\"}".to_string()
     }
 }
 
@@ -989,9 +989,13 @@ fn build_split_groups(apps: &[SplitApp], has_indep: bool) -> String {
             }
         }
         // 图标：按域名取 favicon；无映射则不带 icon（优雅降级）。
-        let icon_seg = match icon_domain(key) {
-            Some(d) => format!(" icon: \"{FAVICON_PREFIX}{d}{FAVICON_SUFFIX}\","),
-            None => String::new(),
+        let icon_seg = if key == "chatgpt" {
+            " icon: \"https://ferrylite.cc/icons/chatgpt.png\",".to_string()
+        } else {
+            match icon_domain(key) {
+                Some(d) => format!(" icon: \"{FAVICON_PREFIX}{d}{FAVICON_SUFFIX}\","),
+                None => String::new(),
+            }
         };
         groups.push(format!(
             "- {{name: \"{name}\", type: select,{icon_seg} proxies: [{list}]}}",
@@ -1557,7 +1561,7 @@ mod tests {
         ];
         let y = inject(&s).unwrap();
         // 每个 APP 一个独立 select 组，默认出口（首位）按 relay/类别预选。
-        assert!(y.contains("- {name: \"ChatGPT\", type: select, icon: \"https://icon.horse/icon/openai.com\", proxies: [美国独立IP,"));
+        assert!(y.contains("- {name: \"ChatGPT\", type: select, icon: \"https://ferrylite.cc/icons/chatgpt.png\", proxies: [美国独立IP,"));
         assert!(y.contains("- {name: \"YouTube\", type: select, icon: \"https://icon.horse/icon/youtube.com\", proxies: [香港-自动,"));
         assert!(y.contains("- {name: \"Binance 币安\", type: select, icon: \"https://icon.horse/icon/binance.com\", proxies: [台湾-自动,"));
         assert!(y.contains("- {name: \"Rocket Mortgage / Quicken\", type: select, icon: \"https://icon.horse/icon/rocketmortgage.com\", proxies: [美国独立IP,"));

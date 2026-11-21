@@ -22,7 +22,7 @@ export function applyLisaVps(source: string, input: LisaBundle, defaults: readon
 
   // Do not let new raw VPS nodes get automatically mixed into airport region/relay pools.
   // Explicit group references remain selectable; only include-all's implicit nodes are filtered.
-  const exclude = `^${LISA_GROUP} · `;
+  const exclude = `^(?:🇺🇸 )?${LISA_GROUP} · `;
   const rawGroups = value["proxy-groups"] as Record<string, unknown>[];
   for (const g of groups) {
     const raw = rawGroups[g.index];

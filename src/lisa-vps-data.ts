@@ -16,7 +16,7 @@ export function validateLisaBundle(value: unknown): LisaBundle {
     const n = matches[0] as Record<string, unknown>;
     const port = type === "hysteria2" ? 443 : type === "ss" ? 24443 : 34443;
     if (n.server !== LISA_SERVER || n.port !== port || n["dialer-proxy"] !== undefined) return fail();
-    const base = { name: `${LISA_GROUP} · ${type === "hysteria2" ? "HY2" : type === "ss" ? "SS2022" : "Reality"}`, type, server: LISA_SERVER, port };
+    const base = { name: `🇺🇸 ${LISA_GROUP} · ${type === "hysteria2" ? "HY2" : type === "ss" ? "SS2022" : "Reality"}`, type, server: LISA_SERVER, port };
     if (type === "hysteria2") {
       if (!text(n.password) || !text(n.sni) || !text(n.fingerprint) || !/^[a-f\d]{64}$/i.test(n.fingerprint.replaceAll(":", ""))) return fail();
       nodes.push({ ...base, password: n.password, sni: n.sni, fingerprint: n.fingerprint.replaceAll(":", ""), "skip-cert-verify": false, alpn: ["h3"], udp: true });

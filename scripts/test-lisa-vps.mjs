@@ -53,6 +53,7 @@ for (const target of ['pc','nikki']) test(`${target}: real WASM output preserves
   assert.throws(()=>applyLisaVps(result,fixture),/重复/);
   for(const g of b.value['proxy-groups'].filter(g=>g['include-all']||g['include-all-proxies'])) {
     assert.ok(new RegExp(g['exclude-filter']).test(`${LISA_GROUP} · HY2`));
+    for(const node of validateLisaBundle(fixture).nodes) assert.ok(new RegExp(g['exclude-filter']).test(node.name));
   }
 });
 const env={FERRYLITE_EXCLUSIVE_CODE:'test-only-code',FERRYLITE_LISA_VPS_JSON:JSON.stringify(fixture)};

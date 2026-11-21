@@ -12,6 +12,12 @@ const sample = () => ({
   edits: [['Example', { removedRules: ['DOMAIN-SUFFIX,example.org,Example'], domains: ['cdn.example.org'], iconDomain: 'cdn.example.org' }]],
   apps: [['steam', false], ['youtube', true]], target: 'nikki', dnsOverride: false,
 });
+
+test('optional Parsec peer IPs persist without changing older drafts',()=>{
+  const storage=memoryStorage(), state={...sample(),parsecPeerIps:['203.0.113.50','2001:db8::50']};
+  saveRoutingDraft(storage,state);assert.deepEqual(loadRoutingDraft(storage),state);
+  assert.throws(()=>saveRoutingDraft(storage,{...state,parsecPeerIps:Array(33).fill('203.0.113.50')}));
+});
 test('routing groups, sites, edits and choices survive a storage round trip', () => {
   const storage = memoryStorage(), state = sample();
   assert.equal(loadRoutingDraft(storage), null);

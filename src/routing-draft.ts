@@ -11,6 +11,7 @@ export interface RoutingDraft {
   apps: [string, boolean][];
   target: "pc" | "nikki";
   dnsOverride: boolean;
+  parsecPeerIps?: string[];
 }
 type DraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 const countries = new Set(["us", "hk", "tw", "jp", "sg", "kr", "gb", "de", "fr", "ca", "au", "nl"]);
@@ -58,7 +59,9 @@ function parseDraft(raw: string): RoutingDraft {
   }
   const legacyApp = apps.find(([key]) => key === "perforce");
   if (legacyApp && !apps.some(([key]) => key === "perforce_hk")) apps.push(["perforce_hk", false]);
-  return { version: 1, groups, sites, edits, apps, target: data.target as RoutingDraft["target"], dnsOverride: data.dnsOverride };
+  if (data.parsecPeerIps !== undefined && (!strings(data.parsecPeerIps, 32) || data.parsecPeerIps.some(ip => ip.length > 64))) throw new Error("保存的 Parsec IP 列表无效");
+  return { version: 1, groups, sites, edits, apps, target: data.target as RoutingDraft["target"], dnsOverride: data.dnsOverride,
+    ...(data.parsecPeerIps !== undefined ? { parsecPeerIps: data.parsecPeerIps as string[] } : {}) };
 }
 export function loadRoutingDraft(storage: DraftStorage): RoutingDraft | null {
   const raw = storage.getItem(ROUTING_DRAFT_KEY);

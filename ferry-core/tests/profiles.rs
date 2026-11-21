@@ -32,6 +32,7 @@ fn sample() -> GenerateInput {
         dns_override: true,
         claude_enabled: true,
         claude_relay: true,
+        parsec_peer_ips: vec![],
         target: ConfigTarget::Pc,
         taiwan_node: Some(node("台湾独立IP", "台湾-中转")),
         exchange_only: false,

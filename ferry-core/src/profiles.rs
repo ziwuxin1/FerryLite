@@ -33,7 +33,10 @@ pub fn instructions(input: &GenerateInput) -> String {
     };
     let media = "\nofiii：主站、播放器及指定 PC / 手机 / 电视 CDN 走「台湾影音」，默认机场台湾自动选择；已配置台湾家宽时可手动切换。台湾影音与交易所出口分开。";
     let refresh = "\n节点全部超时：机场会更换入口，节点列表每 10 分钟自动刷新一次，直连拉不到订阅时会自动改走仍可用的节点。需要立即刷新时，在客户端或面板的「代理集合」（Proxy Providers）里点更新；客户端的「更新订阅」不会刷新它。";
-    format!("{target}{exchange}{media}{refresh}")
+    let parsec = if crate::parsec::app(input).is_some() {
+        "\nParsec：登录/主机列表走「Parsec 远程桌面」，UDP 打洞和串流走「Parsec 串流」（默认直连）。电脑版保持 TUN 开启，路由器版或进程识别失败时需填写对端公网 IP。-6023 仍可能需要处理双方防火墙、CGNAT 或美国主机端口映射；不保证单靠分流修复。"
+    } else { "" };
+    format!("{target}{exchange}{media}{refresh}{parsec}")
 }
 
 /// Text-only patches keep comments and YAML anchors intact.

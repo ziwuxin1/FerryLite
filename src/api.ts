@@ -31,6 +31,7 @@ export interface GenerateInput {
   splitApps: { key: string; relay: boolean; name: string }[];
   claudeEnabled?: boolean;
   claudeRelay?: boolean;
+  parsecPeerIps?: string[];
   customGroups?: { name: string; domains: string[]; country: string; exact: boolean }[];
   /** DNS 覆写开关（默认 true）：false=生成的 dns.enable: false（机场公告要求关闭时用）。 */
   dnsOverride?: boolean;

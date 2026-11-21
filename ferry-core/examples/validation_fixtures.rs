@@ -33,6 +33,7 @@ fn main() {
                 dns_override: true,
         claude_enabled: true,
         claude_relay: true,
+        parsec_peer_ips: vec![],
                 target,
                 taiwan_node: Some(IndependentNode {
                         name: "台湾独立IP".into(),

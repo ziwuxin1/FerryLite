@@ -400,6 +400,8 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
     },
   ];
   const domainEdits = new Map<string, GroupDomainEdit>();
+  const parsecPeers = el("textarea", { "aria-label": "Parsec 对端公网 IP", placeholder: "可选：远程电脑的公网 IPv4 / IPv6；多个地址用逗号或换行分隔", rows: "2" }) as HTMLTextAreaElement;
+  const parsecPeerIps = () => parsecPeers.value.split(/[\s,，]+/).filter(Boolean);
   let baselinePromise: Promise<string> | null = null;
   const domainChange = () => { setStatus("策略组域名已修改，请重新生成 YAML 应用更改。", "warn"); persistDraft(); };
   const domainBaseline = () => {
@@ -524,6 +526,17 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       finally { addSite.disabled = false; }
     } }, ["＋ 添加站点"]) as HTMLButtonElement;
     const header = el("div", { class: "routing-category-header" }, [catAll, expand, addSite]);
+    if (c.apps.some(a => a.key === "parsec")) {
+      inner.append(el("div", { class: "field-hint" }, ["国内连接海外电脑：登录和主机列表走「Parsec 远程桌面」，UDP 打洞与画面走「Parsec 串流」（默认直连）。电脑版需保持 TUN 开启；路由器无法识别电脑进程，请在下方补充对端公网 IP。"]));
+      inner.append(el("details", {}, [
+        el("summary", {}, ["连不上？查看错误码与路由器设置"]),
+        el("p", { class: "field-hint" }, ["-6101 / -800：先在客户端切换「Parsec 远程桌面」线路，并重启 Parsec。-6023 / -6024 / -6013：检查双方防火墙、UDP 和 NAT；美国主机所在路由器可能需要 UPnP 或端口映射。修改分流无法保证修复运营商 NAT。"]),
+        el("p", { class: "field-hint" }, ["使用路由器代理或进程识别失败时，填写对端公网 IP，将发往该 IP 的 UDP 交给同一个串流出口。IP 变化后需更新；不要填 VPS IP，除非 Parsec 主机就在该 VPS 上。"]),
+        parsecPeers,
+        el("p", { class: "field-hint" }, ["只有确认直连 UDP 不通时，才尝试把「Parsec 串流」切到支持 UDP 的节点。支持 UDP 不代表一定支持打洞；两边都在严格 NAT 后时，仍可能需要调整美国主机网络或使用 Parsec 官方中继。"]),
+        el("a", { href: "https://support.parsec.app/hc/en-us/articles/32381913636244-Error-Codes-6023-and-6024-Unable-To-Negotiate-A-Successful-Connection", target: "_blank", rel: "noopener noreferrer" }, ["Parsec 官方连接排查"]),
+      ]));
+    }
     section.append(header, body);
     return section;
   });
@@ -878,6 +891,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
         .map((c) => ({ key: c.key, relay: enableIndep.checked && !c.relay.disabled && c.relay.checked, name: c.name })),
       claudeEnabled: appControls.find(c => c.key === "claude")!.on.checked,
       claudeRelay: enableIndep.checked && appControls.find(c => c.key === "claude")!.relay.checked,
+      parsecPeerIps: parsecPeerIps(),
       dnsOverride: dnsOverride.checked,
       customGroups: customRows.filter(r => r.enabled.checked).map(r => r.saved!),
     };
@@ -1030,6 +1044,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
         sites: categorySites.map(s => ({ name: s.name, domains: [...s.domains], upstream: s.upstream, category: s.category, enabled: s.enabled.checked })),
         edits: [...domainEdits], apps: appControls.map(c => [c.key, c.on.checked]),
         target: target.value as "pc" | "nikki", dnsOverride: dnsOverride.checked,
+        ...(parsecPeerIps().length ? { parsecPeerIps: parsecPeerIps() } : {}),
       });
       storageStatus.textContent = "已自动保存分流配置到当前浏览器，刷新后恢复。订阅、代理密码和 YAML 编辑需另行保存。";
       storageStatus.className = "status-line ok";
@@ -1048,6 +1063,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
         return;
       }
       storageStatus.textContent = "正在恢复本地保存的分流配置…";
+      parsecPeers.value = (draft.parsecPeerIps ?? []).join("\n");
       for (const [name, edit] of draft.edits) domainEdits.set(name, edit);
       for (const saved of draft.groups) addCustomGroup(saved);
       for (const category of new Set(draft.sites.map(s => s.category))) {

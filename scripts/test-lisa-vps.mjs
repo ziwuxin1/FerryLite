@@ -30,6 +30,14 @@ test('VPS merge respects deselected Claude and retains the ChatGPT VPS default',
   assert.deepEqual(inspectYaml(result).filter(p=>p.severity==='error'),[]);
 });
 
+test('VPS merge keeps Parsec streaming direct by default and provides VPS as an explicit option',()=>{
+  const source=JSON.parse(generateConfig(JSON.stringify({...input,splitApps:[...input.splitApps,{key:'parsec',name:'Parsec 远程桌面',relay:false}]}))).yaml;
+  const output=applyLisaVps(source,fixture);const {groups}=readYaml(output);
+  const stream=groups.find(g=>g.name==='Parsec 串流');assert.equal(stream.proxies[0],'直连');assert.ok(stream.proxies.includes(LISA_GROUP));
+  assert.equal(groups.find(g=>g.name==='Parsec 远程桌面').proxies[0],'美国-自动');
+  assert.deepEqual(inspectYaml(output).filter(p=>p.severity==='error'),[]);
+});
+
 test('allowlisted credentials reject incomplete nodes and chained transports', () => {
   assert.equal(validateLisaBundle(fixture).nodes.length,3);
   for (const edit of [b=>b.nodes.pop(),b=>b.nodes[0].fingerprint='bad',b=>b.nodes[1]['dialer-proxy']='机场',b=>b.nodes[2].port=443]) {

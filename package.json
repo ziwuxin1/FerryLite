@@ -17,7 +17,8 @@
     "test:vps": "node --experimental-strip-types --test scripts/test-lisa-vps.mjs",
     "test:overseas": "node --experimental-strip-types --test scripts/test-overseas.mjs",
     "test:ai": "node --experimental-strip-types --test scripts/test-ai-routing.mjs",
-    "test:parsec": "node --experimental-strip-types --test scripts/test-parsec.mjs"
+    "test:parsec": "node --experimental-strip-types --test scripts/test-parsec.mjs",
+    "test:routing": "node --experimental-strip-types --test scripts/test-routing-audit.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",

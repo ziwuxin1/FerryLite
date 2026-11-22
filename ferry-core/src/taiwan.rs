@@ -28,6 +28,7 @@ pub fn media_rules() -> String {
         ("DOMAIN", "ntdofifreepc-tgc.cdn.hinet.net"),
         ("DOMAIN", "ntdofifreemobile-tgc.cdn.hinet.net"),
         ("DOMAIN", "ntdofifreetv-tgc.cdn.hinet.net"),
+
     ]
     .into_iter()
     .flat_map(|(kind, domain)| {
@@ -108,6 +109,9 @@ fn domains(key: &str) -> &'static [&'static str] {
             "okx-dns2.com",
             "okx.ac",
             "okx.cab",
+            "oklink.com",
+            "xlayer.tech",
+            "okx.com.cdn.cloudflare.net",
         ],
         "bybit" => &[
             "bybit.com",
@@ -154,7 +158,11 @@ pub fn rules(input: &GenerateInput) -> String {
         rules.push(format!("- DOMAIN,{domain},交易所-台湾家宽"));
     }
     for app in input.split_apps.iter().filter(|a| is_exchange(&a.key)) {
-        for domain in domains(&app.key) {
+        let mut reviewed: Vec<String> = domains(&app.key).iter().map(|d| d.to_string()).collect();
+        for domain in crate::routing::site_domains(&app.key) {
+            if !reviewed.contains(&domain) { reviewed.push(domain); }
+        }
+        for domain in reviewed {
             rules.push(format!(
                 "- AND,((NETWORK,UDP),(DOMAIN-SUFFIX,{domain})),REJECT"
             ));

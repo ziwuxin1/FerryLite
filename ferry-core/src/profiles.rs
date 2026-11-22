@@ -87,7 +87,7 @@ pub fn apply_profile(yaml: String, input: &GenerateInput) -> String {
         } else if section == "proxy-groups" {
             // Provider-only membership prevents a renamed residential proxy from
             // matching a region filter and recursively becoming its own upstream.
-            line.replace("include-all: true", "include-all-providers: true")
+            crate::routing::group_line(&line.replace("include-all: true", "include-all-providers: true"))
         } else {
             line.to_string()
         };

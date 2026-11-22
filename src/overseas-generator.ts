@@ -1,12 +1,14 @@
 import { parse, stringify } from "yaml";
+import REGION_PATTERNS from "../ferry-core/data/regions.json" with {type:"json"};
 import { V77 } from "./overseas-v77.ts";
+import { OVERSEAS_RULES, OVERSEAS_PROVIDERS } from "./overseas-routing.ts";
 import { inspectYaml, normalizeDomains } from "./yaml-editor.ts";
 import { validateOverseasBundle } from "./overseas-data.ts";
 import type { OverseasBundle, OverseasNode } from "./overseas-data.ts";
 
 export const OVERSEAS_GROUPS = ["中国网站", "哔哩哔哩", "交易所", "台湾影音", "日本网站", "STEAM"] as const;
 export const REGIONS = ["中国", "台湾", "日本", "香港", "美国", "新加坡", "韩国"] as const;
-const regionPatterns = ["(?i)(中国|回国|大陆|深圳|北京|\\bCN\\b|China)", "(?i)(台湾|台灣|🇹🇼|Taiwan|\\bTW\\b)", "(?i)(日本|东京|大阪|🇯🇵|Japan|\\bJP\\b)", "(?i)(香港|🇭🇰|Hong.?Kong|\\bHK\\b)", "(?i)(美国|洛杉|🇺🇸|United.States|\\bUS\\b)", "(?i)(新加坡|🇸🇬|Singapore|\\bSG\\b)", "(?i)(韩国|韓國|🇰🇷|Korea|\\bKR\\b)"];
+const regionPatterns = REGIONS.map(r => REGION_PATTERNS[r]);
 const flags = ["cn", "tw", "jp", "hk", "us", "sg", "kr"];
 const flag = (code: string) => `https://gh-proxy.com/raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/${code}.svg`;
 const icons: Record<string, string> = {中国网站:flag("cn"),哔哩哔哩:"https://icon.horse/icon/bilibili.com",交易所:"https://icon.horse/icon/okx.com",台湾影音:flag("tw"),日本网站:flag("jp"),STEAM:"https://icon.horse/icon/steampowered.com"};
@@ -60,8 +62,8 @@ export function generateOverseas(input: OverseasInput): {yaml:string;filename:st
   }
   groups.push({name:"test",type:"select",icon:"https://icon.horse/icon/speedtest.net",proxies:["交易所","台湾影音","中国网站","日本网站","直连"]});
   const matcherEnabled=new Set<string>();
-  for(const rule of V77.rules) {const parts=rule.split(",");if(enabled.has(parts[parts.length-1])||parts[parts.length-1]==="test")matcherEnabled.add(parts.slice(0,-1).join(","));}
-  const rules:string[]=V77.rules.filter(rule=>{
+  for(const rule of OVERSEAS_RULES) {const parts=rule.split(",");if(enabled.has(parts[parts.length-1])||parts[parts.length-1]==="test")matcherEnabled.add(parts.slice(0,-1).join(","));}
+  const rules:string[]=OVERSEAS_RULES.filter(rule=>{
     if(rule.startsWith("MATCH,"))return true;
     const match=rule.match(/^AND,\(\(NETWORK,UDP\),\((.*)\)\),REJECT$/);
     if(match)return matcherEnabled.has(match[1]);
@@ -83,7 +85,7 @@ export function generateOverseas(input: OverseasInput): {yaml:string;filename:st
     tun:router?{enable:true,device:"nikki",stack:"mixed","auto-route":false,"auto-redirect":false}:{enable:true,stack:"gvisor","auto-route":true,"strict-route":true,"auto-detect-interface":true,"dns-hijack":["any:53","tcp://any:53"]},
     profile:{"store-selected":true,"store-fake-ip":true},sniffer:V77.sniffer,
     proxies:[...bundle.nodes,{name:"直连",type:"direct"},{name:"拒绝",type:"reject"}],"proxy-providers":providers,"proxy-groups":groups,
-    "rule-providers":V77.ruleProviders,rules:[...additions,...rules],
+    "rule-providers":OVERSEAS_PROVIDERS,rules:[...additions,...rules],
   };
   const yaml=`# FerryLite 海外模式 · 根据 V77 分流规则生成\n# 含私人节点信息，请勿公开分享。未匹配流量直连。\n${stringify(config,{lineWidth:0})}`;
   const errors=inspectYaml(yaml).filter(e=>e.severity==="error");

@@ -125,9 +125,10 @@ test('YouTube resource preset covers subdomains without adding regional storefro
 
 test('Robinhood and OKX completion covers observed API, CDN and websocket hostnames by suffix', () => {
   assert.deepEqual(completeSiteDomains('robinhood').domains, ['robinhood.com']);
-  assert.deepEqual(completeSiteDomains('okx').domains, ['okx.com']);
+  const okxDomains = ['okx.com','okex.com','okx-dns.com','okx-dns1.com','okx-dns2.com','okx.ac','okx.cab','oklink.com','xlayer.tech','okx.com.cdn.cloudflare.net'];
+  assert.deepEqual(completeSiteDomains('okx').domains, okxDomains);
   for (const host of ['api.robinhood.com:443', 'bonfire.robinhood.com:443', 'cdn.robinhood.com:443']) assert.deepEqual(completeSiteDomains(host).domains, ['robinhood.com']);
-  for (const host of ['static.okx.com:443', 'wspri.okx.com:8443', 'ipushws.okx.com:443']) assert.deepEqual(completeSiteDomains(host).domains, ['okx.com']);
+  for (const host of ['static.okx.com:443', 'wspri.okx.com:8443', 'ipushws.okx.com:443']) assert.deepEqual(completeSiteDomains(host).domains, okxDomains);
   const parsed = readYaml(addSites(original, { target: 'Games', text: completeSiteDomains('robinhood').domains.join('\n'), exact: false, replaceIcon: false }).source);
   assert.ok(parsed.rules.includes('DOMAIN-SUFFIX,robinhood.com,Games'));
 });

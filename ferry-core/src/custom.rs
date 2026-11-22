@@ -13,18 +13,18 @@ pub struct CustomGroup {
 }
 
 const COUNTRIES: &[(&str, &str, &str)] = &[
-    ("us", "美国", "美国|美國|🇺🇸|\\bUS\\b|United States"),
-    ("hk", "香港", "香港|🇭🇰|\\bHK\\b|Hong.?Kong"),
-    ("tw", "台湾", "台湾|台灣|🇹🇼|\\bTW\\b|Taiwan"),
-    ("jp", "日本", "日本|🇯🇵|\\bJP\\b|Japan"),
-    ("sg", "新加坡", "新加坡|狮城|獅城|🇸🇬|\\bSG\\b|Singapore"),
-    ("kr", "韩国", "韩国|韓國|🇰🇷|\\bKR\\b|Korea"),
-    ("gb", "英国", "英国|英國|🇬🇧|\\b(UK|GB)\\b|United Kingdom|Britain"),
-    ("de", "德国", "德国|德國|🇩🇪|\\bDE\\b|Germany"),
-    ("fr", "法国", "法国|法國|🇫🇷|\\bFR\\b|France"),
-    ("ca", "加拿大", "加拿大|🇨🇦|\\bCA\\b|Canada"),
-    ("au", "澳大利亚", "澳大利亚|澳大利亞|澳洲|🇦🇺|\\bAU\\b|Australia"),
-    ("nl", "荷兰", "荷兰|荷蘭|🇳🇱|\\bNL\\b|Netherlands"),
+    ("us", "美国", "美国|美國|🇺🇸|\\bUS(?:\\b|[0-9])|United States"),
+    ("hk", "香港", "香港|🇭🇰|\\bHK(?:\\b|[0-9])|Hong.?Kong"),
+    ("tw", "台湾", "台湾|台灣|🇹🇼|\\bTW(?:\\b|[0-9])|Taiwan"),
+    ("jp", "日本", "日本|🇯🇵|\\bJP(?:\\b|[0-9])|Japan"),
+    ("sg", "新加坡", "新加坡|狮城|獅城|🇸🇬|\\bSG(?:\\b|[0-9])|Singapore"),
+    ("kr", "韩国", "韩国|韓國|🇰🇷|\\bKR(?:\\b|[0-9])|Korea"),
+    ("gb", "英国", "英国|英國|🇬🇧|\\b(UK|GB)(?:\\b|[0-9])|United Kingdom|Britain"),
+    ("de", "德国", "德国|德國|🇩🇪|\\bDE(?:\\b|[0-9])|Germany"),
+    ("fr", "法国", "法国|法國|🇫🇷|\\bFR(?:\\b|[0-9])|France"),
+    ("ca", "加拿大", "加拿大|🇨🇦|\\bCA(?:\\b|[0-9])|Canada"),
+    ("au", "澳大利亚", "澳大利亚|澳大利亞|澳洲|🇦🇺|\\bAU(?:\\b|[0-9])|Australia"),
+    ("nl", "荷兰", "荷兰|荷蘭|🇳🇱|\\bNL(?:\\b|[0-9])|Netherlands"),
 ];
 
 fn normalized(domain: &str) -> String { domain.trim().trim_end_matches('.').to_ascii_lowercase() }
@@ -73,5 +73,5 @@ pub fn rules(input: &GenerateInput) -> String {
     let mut entries: Vec<_> = input.custom_groups.iter().flat_map(|g| g.domains.iter().map(move |d| (normalized(d), g))).collect();
     // More specific subdomains precede parents; exact matches precede suffixes.
     entries.sort_by(|(a, ga), (b, gb)| b.split('.').count().cmp(&a.split('.').count()).then_with(|| gb.exact.cmp(&ga.exact)).then_with(|| a.cmp(b)));
-    entries.into_iter().map(|(d, g)| format!("- {}", yaml_dq(&format!("{},{},{}", if g.exact { "DOMAIN" } else { "DOMAIN-SUFFIX" }, d, group_name(g))))).collect::<Vec<_>>().join("\n  ")
+    crate::routing::guarded(&entries.into_iter().map(|(d, g)| format!("- {}", yaml_dq(&format!("{},{},{}", if g.exact { "DOMAIN" } else { "DOMAIN-SUFFIX" }, d, group_name(g))))).collect::<Vec<_>>().join("\n  "))
 }

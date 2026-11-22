@@ -9,7 +9,7 @@ const field=(name:string,node:HTMLElement)=>el("label",{class:"field"},[el("span
 const input=(name:string,type="text",placeholder="")=>el("input",{type,"aria-label":name,placeholder,autocomplete:"off"}) as HTMLInputElement;
 const select=(name:string,options:string[][])=>el("select",{"aria-label":name},options.map(([v,label])=>el("option",{value:v},[label]))) as HTMLSelectElement;
 const button=(label:string,fn:()=>void,primary=false)=>el("button",{type:"button",class:`btn${primary?" primary":""}`,onclick:fn},[label]) as HTMLButtonElement;
-const hints:Record<string,string>={中国网站:"回国访问中国服务",哔哩哔哩:"独立选择哔哩哔哩出口",交易所:"海外交易所 · 可选台湾独立 IP",台湾影音:"台湾影音及播放 CDN",日本网站:"日本地区网站及相关服务",STEAM:"默认直连，可切换地区"};
+const hints:Record<string,string>={中国网站:"回国访问中国服务",哔哩哔哩:"独立选择哔哩哔哩出口",交易所:"海外交易所 · 可选台湾独立 IP",台湾影音:"OFiii、LiTV、巴哈姆特及播放资源",日本网站:"V77 日站、ABEMA、TVer、Niconico",STEAM:"默认直连，可切换地区"};
 const DRAFT="ferrylite.overseas.routing.v1";
 
 export function renderOverseasView(root:HTMLElement): void {

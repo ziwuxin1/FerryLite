@@ -11,6 +11,7 @@ mod taiwan;
 mod custom;
 mod ai;
 mod parsec;
+mod routing;
 pub use custom::CustomGroup;
 pub use profiles::ConfigTarget;
 
@@ -448,7 +449,9 @@ fn build_verify_rules() -> String {
 /// 复用模板已有 rule-provider 名（带 ` / Domain`/` / IP` 后缀）；无 provider 的站点内联 DOMAIN-SUFFIX。
 fn build_split_rules(apps: &[SplitApp]) -> String {
     let mut rules: Vec<String> = Vec::new();
-    for app in apps {
+    let mut ordered: Vec<_> = apps.iter().collect();
+    ordered.sort_by_key(|a| matches!(a.key.as_str(), "google" | "apple" | "microsoft"));
+    for app in ordered {
         let key = app.key.as_str();
         let t = app.name.as_str(); // 目标 = 该 APP 自己的策略组（组名即 app.name）
         match key {
@@ -461,18 +464,12 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
                     rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
                 }
             }
-            "gemini" => {
-                rules.push(format!("- RULE-SET,Gemini / Domain,{t}"));
-                rules.push(format!("- DOMAIN-SUFFIX,gemini.google.com,{t}"));
-            }
+            "gemini" => {} // Shared reviewed catalog; do not import the broad Google storage list.
             "perplexity" => {
                 rules.push(format!("- RULE-SET,Perplexity / Domain,{t}"));
                 rules.push(format!("- DOMAIN-SUFFIX,perplexity.ai,{t}"));
             }
-            "metaai" => {
-                rules.push(format!("- RULE-SET,Meta AI / Domain,{t}"));
-                rules.push(format!("- DOMAIN-SUFFIX,meta.ai,{t}"));
-            }
+            "metaai" => {} // Shared catalog excludes unrelated AI products.
             "copilot" => {
                 rules.push(format!("- RULE-SET,Copilot / Domain,{t}"));
                 rules.push(format!("- DOMAIN-SUFFIX,copilot.microsoft.com,{t}"));
@@ -669,7 +666,7 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
                     rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
                 }
             }
-            "amazon" => rules.push(format!("- RULE-SET,Amazon / Domain,{t}")),
+            "amazon" => {} // Shopping boundaries come from the shared catalog, never the AWS family list.
             "ebay" => {
                 for d in ["ebay.com", "ebayimg.com", "ebaystatic.com"] {
                     rules.push(format!("- DOMAIN-SUFFIX,{d},{t}"));
@@ -787,7 +784,7 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
             _ => {}
         }
     }
-    rules.join("\n  ")
+    routing::guarded(&format!("{}\n  {}", routing::catalog_rules(apps), rules.join("\n  ")))
 }
 
 /// 策略组图标：用 icon.horse 按域名取每个 APP 的真实 logo（zashboard 渲染 `icon` 字段）。

@@ -4,6 +4,7 @@ import {parse} from 'yaml';
 import {generateOverseas,importOverseasNodes,mergeOverseasNodes,OVERSEAS_GROUPS} from '../src/overseas-generator.ts';
 import {validateOverseasBundle} from '../src/overseas-data.ts';
 import {V77} from '../src/overseas-v77.ts';
+import {OVERSEAS_RULES} from '../src/overseas-routing.ts';
 import {createExclusiveHandler} from '../server/exclusive-handler.mjs';
 const empty={version:1,nodes:[],preferred:{}};
 const input={target:'nikki',airports:[],bundle:empty,enabled:[...OVERSEAS_GROUPS],defaults:{},domains:{},controllerSecret:'test-only-secret'};
@@ -14,7 +15,8 @@ const nodes=[
 ];
 test('public overseas mode requires no private nodes and preserves V77 routing',()=>{
   const result=generateOverseas(input),c=parse(result.yaml);
-  assert.deepEqual(c.rules,V77.rules);
+  assert.deepEqual(c.rules,OVERSEAS_RULES);
+  for(const rule of V77.rules.filter(r=>r!=='DOMAIN-KEYWORD,fc2,日本网站'))assert.ok(c.rules.includes(rule));
   assert.equal(c.rules[c.rules.length-1],'MATCH,直连');
   assert.equal(c.tun.enable,true);assert.equal(c.tun['auto-route'],false);assert.equal(c.ipv6,false);
   assert.ok(result.warnings.length>0);

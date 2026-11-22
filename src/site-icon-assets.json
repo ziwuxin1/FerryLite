@@ -120,28 +120,51 @@
     "tone": "color"
   },
   "binance.com": {
-    "src": "/icons/sites/binance.com.png",
-    "tone": "color"
+    "src": "/icons/sites/binance-brand.svg",
+    "tone": "color",
+    "color": "#F0B90B",
+    "badgeWidth": 40
   },
   "okx.com": {
-    "src": "/icons/sites/okx.com.png",
-    "tone": "color"
+    "src": "/icons/sites/okx-brand.svg#svgView(viewBox(0,8.5,24,7))",
+    "tone": "mono",
+    "width": 40,
+    "badgeWidth": 40
   },
   "bybit.com": {
-    "src": "/icons/sites/bybit.com.png",
-    "tone": "color"
+    "src": "/icons/sites/bybit-brand.svg",
+    "tone": "mono",
+    "width": 40,
+    "badgeWidth": 40
   },
   "kucoin.com": {
-    "src": "/icons/sites/kucoin.com.png",
-    "tone": "color"
+    "src": "/icons/sites/kucoin-brand.svg",
+    "tone": "color",
+    "color": "#00B47D",
+    "badgeWidth": 40
   },
   "gate.io": {
-    "src": "/icons/sites/gate.io.png",
-    "tone": "color"
+    "src": "/icons/sites/gate-brand.svg",
+    "tone": "color",
+    "badgeWidth": 40,
+    "crop": {
+      "width": 71.52,
+      "height": 40.16,
+      "left": -23.84,
+      "top": -8.16
+    }
   },
   "bitget.com": {
-    "src": "/icons/sites/bitget.com.png",
-    "tone": "color"
+    "src": "/icons/sites/bitget-brand.svg",
+    "tone": "color",
+    "color": "#00C8D2",
+    "badgeWidth": 40,
+    "crop": {
+      "width": 95.08,
+      "height": 29.54,
+      "left": 0,
+      "top": -0.92
+    }
   },
   "parsec.app": {
     "src": "/icons/sites/parsec.app.png",

@@ -680,11 +680,12 @@
     "name": "Perforce 香港",
     "aliases": [
       "perforce_hk",
-      "Perforce 香港（默认香港自动）"
+      "Perforce 香港（默认香港自动）",
+      "Perforce 香港（默认 MAXs 香港 VPS）"
     ],
     "domains": [],
     "ipCidrs": [
-      "103.143.80.232/32"
+      "192.238.186.43/32"
     ],
     "exclusive": true,
     "sources": [

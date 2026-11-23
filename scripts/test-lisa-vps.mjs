@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { initSync, generateConfig } from '../web/src/ferry-wasm/ferry_wasm.js';
-import { validateLisaBundle, LISA_GROUP, LISA_SERVER } from '../src/lisa-vps-data.ts';
+import { validateLisaBundle, validateHongKongBundle, LISA_GROUP, LISA_SERVER, HONG_KONG_GROUP, HONG_KONG_SERVER } from '../src/lisa-vps-data.ts';
 import { applyLisaVps } from '../src/lisa-vps.ts';
 import { readYaml, inspectYaml, applyAddedSites } from '../src/yaml-editor.ts';
 import { unlockExclusive } from '../src/exclusive-options.ts';
@@ -15,6 +15,8 @@ export const fixture = {version:1,nodes:[
   {type:'vless',server:LISA_SERVER,port:34443,uuid:'11111111-1111-4111-8111-111111111111',servername:'example.com',
     'reality-opts':{'public-key':'A'.repeat(43),'short-id':'0123456789abcdef'}},
 ]};
+const hongKong = {version:1,nodes:fixture.nodes.map(n=>({...structuredClone(n),server:HONG_KONG_SERVER}))};
+const combined = {...fixture,hongKong};
 initSync({module:readFileSync(new URL('../web/src/ferry-wasm/ferry_wasm_bg.wasm', import.meta.url))});
 const input = {airports:[{name:'机场',url:'https://subscription.example.test/sub'}],independentNodes:[],
   splitApps:[{key:'chatgpt',name:'ChatGPT',relay:false},{key:'perforce',name:'Perforce 美国',relay:false},
@@ -101,4 +103,41 @@ test('browser unlock distinguishes bad code, temporary failure and verified node
     return createExclusiveHandler(env)(req(JSON.parse(options.body).code));
   });
   assert.deepEqual(b,validateLisaBundle(fixture));
+});
+
+for (const target of ['pc','nikki']) test(`${target}: Hong Kong migration keeps US defaults and isolates both VPS pools`,()=>{
+  const source=JSON.parse(generateConfig(JSON.stringify({...input,target}))).yaml;
+  const {value,groups,rules}=readYaml(applyLisaVps(source,combined));
+  const group=name=>groups.find(g=>g.name===name);
+  assert.ok(rules.includes('IP-CIDR,192.238.186.43/32,Perforce 香港,no-resolve'));
+  assert.ok(!rules.some(r=>r.includes('103.143.80.232')));
+  assert.equal(group('Perforce 香港').proxies[0],HONG_KONG_GROUP);
+  assert.ok(group('Perforce 香港').proxies.includes('香港-自动'));
+  for(const name of ['Claude','ChatGPT','Perforce 美国']) assert.equal(group(name).proxies[0],LISA_GROUP);
+  assert.deepEqual(group(HONG_KONG_GROUP).proxies,validateHongKongBundle(hongKong).nodes.map(n=>n.name));
+  assert.equal(value.proxies.find(n=>n.name===group(HONG_KONG_GROUP).proxies[0]).type,'ss');
+  assert.equal(value.proxies.filter(n=>n.server===HONG_KONG_SERVER).length,3);
+  assert.equal(value.proxies.filter(n=>n.server===LISA_SERVER).length,3);
+  for(const g of value['proxy-groups'].filter(g=>g['include-all']||g['include-all-proxies'])) {
+    for(const n of value.proxies) assert.ok(new RegExp(g['exclude-filter']).test(n.name));
+  }
+  for(const g of groups.filter(g=>g.type!=='select'||g.name.endsWith('-中转')||g.name.startsWith('订阅刷新'))) {
+    assert.ok(!g.proxies.includes(HONG_KONG_GROUP));
+  }
+  assert.deepEqual(inspectYaml(applyLisaVps(source,combined)).filter(p=>p.severity==='error'),[]);
+});
+
+test('Hong Kong credentials share authentication and never replace or weaken US validation',async()=>{
+  const handler=createExclusiveHandler({...env,FERRYLITE_HK_VPS_JSON:JSON.stringify(hongKong)});
+  const bad=await handler(req('wrong'));assert.equal(bad.status,401);
+  assert.ok(!(await bad.text()).includes(HONG_KONG_SERVER));
+  const result=await handler(req());assert.equal(result.status,200);
+  assert.deepEqual(await result.json(),validateLisaBundle(combined));
+  assert.throws(()=>validateLisaBundle(hongKong));
+  assert.throws(()=>validateHongKongBundle(fixture));
+  for(const edit of [b=>b.hongKong.nodes.pop(),b=>b.hongKong.nodes[0]['dialer-proxy']='机场',b=>b.hongKong.nodes[0].server='untrusted.example']) {
+    const b=structuredClone(combined);edit(b);assert.throws(()=>validateLisaBundle(b));
+  }
+  const unlocked=await unlockExclusive('test-only-code',async()=>createExclusiveHandler({...env,FERRYLITE_HK_VPS_JSON:JSON.stringify(hongKong)})(req()));
+  assert.deepEqual(unlocked,validateLisaBundle(combined));
 });

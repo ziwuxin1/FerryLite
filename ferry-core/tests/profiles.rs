@@ -96,18 +96,18 @@ fn perforce_servers_have_independent_routes_in_both_profiles() {
         let rules = value["rules"].as_sequence().unwrap();
         let find = |text: &str| rules.iter().position(|v| v.as_str() == Some(text)).unwrap();
         find("DOMAIN,perforce-maxs.ddns.me,Perforce 美国");
-        assert!(find("IP-CIDR,103.143.80.232/32,Perforce 香港,no-resolve")
+        assert!(find("IP-CIDR,192.238.186.43/32,Perforce 香港,no-resolve")
             < rules.iter().position(|r| r.as_str().unwrap().starts_with("MATCH,")).unwrap());
         let both = input.split_apps.clone();
         for index in 0..2 {
             input.split_apps = vec![both[index].clone()];
             let yaml = generate(&input).unwrap().yaml;
             assert_eq!(yaml.contains("DOMAIN,perforce-maxs.ddns.me,"), index == 0);
-            assert_eq!(yaml.contains("IP-CIDR,103.143.80.232/32,"), index == 1);
+            assert_eq!(yaml.contains("IP-CIDR,192.238.186.43/32,"), index == 1);
         }
         input.split_apps.clear();
         let disabled = generate(&input).unwrap().yaml;
-        assert!(!disabled.contains("103.143.80.232/32"));
+        assert!(!disabled.contains("192.238.186.43/32"));
     }
 }
 

@@ -254,7 +254,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
     },
     { cat: "Perforce（默认走机场）", apps: [
       { key: "perforce", label: "Perforce 美国", on: true, relay: false },
-      { key: "perforce_hk", label: "Perforce 香港（默认香港自动）", on: false, relay: false },
+      { key: "perforce_hk", label: "Perforce 香港（默认 MAXs 香港 VPS）", on: false, relay: false },
     ] },
     { cat: "Parsec（远程桌面 / 串流 · 无需独立家宽 IP）", apps: [{ key: "parsec", label: "Parsec 远程桌面", on: true, relay: false }] },
     {
@@ -605,7 +605,9 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       splitSections.forEach((section, i) => { section.hidden = !exclusiveUnlocked && APP_CATALOG[i].apps.some(a => isExclusiveApp(a.key)); });
       catAllUpdaters.forEach(fn => fn()); updateUsRelay();
       mysteryCode.value = ""; mysteryCode.hidden = true; unlock.hidden = true;
-      unlockStatus.textContent = "已加入丽萨洛杉矶VPS（HY2 / SS2022 / Reality）。ChatGPT、Claude、Perforce 美国默认使用 VPS；其他应用保留原出口，并可切换到 VPS。机场香港、台湾等线路继续保留。刷新或 Reset 后需重新解锁。";
+      unlockStatus.textContent = loaded.hongKong
+        ? "已加入丽萨洛杉矶VPS 和 MAXs香港VPS（各含 HY2 / SS2022 / Reality）。Perforce 香港默认使用香港 VPS，服务器地址为 192.238.186.43:1888；ChatGPT、Claude、Perforce 美国仍使用洛杉矶 VPS。刷新或 Reset 后需重新解锁。"
+        : "已加入丽萨洛杉矶VPS（HY2 / SS2022 / Reality）。ChatGPT、Claude、Perforce 美国默认使用洛杉矶 VPS；香港 VPS 暂未配置，Perforce 香港使用香港自动。刷新或 Reset 后需重新解锁。";
       unlockStatus.className = "status-line ok";
       setStatus("已解锁专属配置，请重新生成 YAML 应用更改。", "ok");
       refreshDesign();

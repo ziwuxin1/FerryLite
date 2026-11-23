@@ -44,7 +44,7 @@ function parseDraft(raw: string): RoutingDraft {
   const legacyIndex = edits.findIndex(([name]) => name === "Perforce 服务器");
   if (legacyIndex >= 0) {
     const [, legacy] = edits.splice(legacyIndex, 1)[0];
-    const isHongKong = (rule: string) => rule.startsWith("IP-CIDR,103.143.80.232/32,");
+    const isHongKong = (rule: string) => ["103.143.80.232", "192.238.186.43"].some(ip => rule.startsWith(`IP-CIDR,${ip}/32,`));
     const rename = (rule: string, name: string) => {
       const parts = rule.split(",");
       if (parts[2] === "Perforce 服务器") parts[2] = name;
@@ -56,6 +56,10 @@ function parseDraft(raw: string): RoutingDraft {
     if (!edits.some(([name]) => name === "Perforce 香港")) edits.push(["Perforce 香港", {
       domains: [], removedRules: legacy.removedRules.filter(isHongKong).map(r => rename(r, "Perforce 香港")),
     }]);
+  }
+  for (const [name, edit] of edits) {
+    if (name === "Perforce 香港") edit.removedRules = [...new Set(edit.removedRules.map(rule =>
+      rule.replace(/^IP-CIDR,103\.143\.80\.232\/32,/, "IP-CIDR,192.238.186.43/32,")))];
   }
   const legacyApp = apps.find(([key]) => key === "perforce");
   if (legacyApp && !apps.some(([key]) => key === "perforce_hk")) apps.push(["perforce_hk", false]);

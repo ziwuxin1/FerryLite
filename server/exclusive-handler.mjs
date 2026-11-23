@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { validateLisaBundle } from '../src/lisa-vps-data.ts';
+import { validateLisaBundle, validateHongKongBundle } from '../src/lisa-vps-data.ts';
 
 const headers = {
   'Cache-Control': 'private, no-store, max-age=0',
@@ -52,6 +52,9 @@ export function createExclusiveHandler(env = process.env, options = {}) {
     if (typeof body?.code !== 'string' || !timingSafeEqual(digest(body.code.trim()), digest(secret))) return reply(401, 'invalid_code');
     try {
       const bundle = validate(JSON.parse(env[bundleKey]));
+      if (validate === validateLisaBundle && env.FERRYLITE_HK_VPS_JSON) {
+        bundle.hongKong = validateHongKongBundle(JSON.parse(env.FERRYLITE_HK_VPS_JSON));
+      }
       return Response.json(bundle, { headers:responseHeaders });
     } catch {
       // Never log submitted codes, environment values or validation data.

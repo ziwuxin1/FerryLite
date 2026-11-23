@@ -55,7 +55,7 @@ test('legacy Perforce deletions migrate to separate regional groups and survive 
   assert.deepEqual(migrated.apps, [['perforce', true], ['perforce_hk', false]]);
   assert.deepEqual(migrated.edits, [
     ['Perforce 美国', {domains:['extra.example.test'], iconDomain:'perforce.com', removedRules:['DOMAIN,perforce-maxs.ddns.me,Perforce 美国']}],
-    ['Perforce 香港', {domains:[], removedRules:['IP-CIDR,103.143.80.232/32,Perforce 香港,no-resolve']}],
+    ['Perforce 香港', {domains:[], removedRules:['IP-CIDR,192.238.186.43/32,Perforce 香港,no-resolve']}],
   ]);
   saveRoutingDraft(storage, migrated);
   assert.deepEqual(loadRoutingDraft(storage), migrated);

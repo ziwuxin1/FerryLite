@@ -71,9 +71,12 @@
     ],
     "domains": [
       "copilot.microsoft.com",
+      "copilot.com",
       "bing.com"
     ],
     "sources": [
+      "https://copilot.microsoft.com/",
+      "https://copilot.com/",
       "https://gh-proxy.com/raw.githubusercontent.com/liandu2024/clash/refs/heads/main/list/Copilot.list"
     ]
   },
@@ -1602,10 +1605,12 @@
       "Carrington"
     ],
     "domains": [
-      "carringtonms.com"
+      "carringtonms.com",
+      "carringtonmortgage.com"
     ],
     "sources": [
-      "ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"
+      "https://www.carringtonmortgage.com/",
+      "https://www.carringtonmortgage.com/Contact-Us"
     ]
   },
   {

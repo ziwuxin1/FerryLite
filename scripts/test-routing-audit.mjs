@@ -3,10 +3,10 @@ import {parse} from 'yaml';import {initSync,generateConfig} from '../web/src/fer
 import {generateOverseas,OVERSEAS_GROUPS} from '../src/overseas-generator.ts';
 import {V77} from '../src/overseas-v77.ts';
 initSync({module:fs.readFileSync(new URL('../web/src/ferry-wasm/ferry_wasm_bg.wasm',import.meta.url))});
-const keys=['google','microsoft','amazon','youtube','github','npm','gemini','cursor','gitlab','dockerhub','huggingface','ea','ubisoft','metaai','okx','steam','grok','twitter','gate','kucoin','whatsapp','discord'];
+const keys=['google','microsoft','amazon','youtube','github','npm','gemini','cursor','gitlab','dockerhub','huggingface','ea','ubisoft','metaai','okx','steam','grok','twitter','gate','kucoin','whatsapp','discord','copilot','carrington'];
 const input={airports:[{name:'Audit',url:'https://example.test/sub'}],independentNodes:[],splitApps:keys.map(key=>({key,name:key,relay:false}))};
 // Minimal upstream company lists retain the overlaps that exposed the bug.
-const remote={'Google / Domain':['google.com','googlevideo.com','youtube.com','googleusercontent.com','googleapis.com'],'Microsoft / Domain':['github.com','githubusercontent.com','npmjs.org','blob.core.windows.net']};
+const remote={'Google / Domain':['google.com','googlevideo.com','youtube.com','googleusercontent.com','googleapis.com'],'Microsoft / Domain':['github.com','githubusercontent.com','npmjs.org','blob.core.windows.net','copilot.com']};
 const suffix=(h,d)=>h===d||h.endsWith('.'+d);
 function route(c,host){for(const r of c.rules){const p=r.split(',');if(p[0]==='DOMAIN'&&p[1]===host||p[0]==='DOMAIN-SUFFIX'&&suffix(host,p[1]))return p[2];if(p[0]==='RULE-SET'&&remote[p[1]]?.some(d=>suffix(host,d)))return p[2];if(p[0]==='MATCH')return p[1];}}
 for(const target of ['pc','nikki'])test(`${target}: specific service routes win over corporate clouds with UDP guards`,()=>{
@@ -23,6 +23,19 @@ for(const target of ['pc','nikki'])test(`${target}: specific service routes win 
  for(const g of c['proxy-groups'].filter(g=>g['include-all-providers']))assert.equal(g['empty-fallback'],'REJECT',g.name);
  const us=new RegExp(c['proxy-groups'].find(g=>g.name==='美国-自动').filter.replace('(?i)',''),'i');for(const name of ['US01','🇺🇸 美国 01','us-2'])assert(us.test(name));for(const name of ['AUS01','RUS 01','Australia'])assert(!us.test(name));
  const tw=new RegExp(c['proxy-groups'].find(g=>g.name==='台湾-自动').filter.replace('(?i)',''),'i');assert(tw.test('TW01'));assert(!tw.test('🇨🇳 CN01'));
+});
+for(const target of ['pc','nikki'])test(`${target}: public homepage redirects retain Copilot and Carrington policy groups`,()=>{
+ const c=parse(JSON.parse(generateConfig(JSON.stringify({...input,target}))).yaml,{merge:true});
+ for(const [key,hosts] of Object.entries({copilot:['copilot.microsoft.com','copilot.com','www.copilot.com'],carrington:['carringtonms.com','carringtonmortgage.com','www.carringtonmortgage.com']})) {
+  for(const host of hosts)assert.equal(route(c,host),key,host);
+ }
+ for(const [domain,key] of [['copilot.com','copilot'],['carringtonmortgage.com','carrington']]) {
+  const rule=`DOMAIN-SUFFIX,${domain},${key}`;
+  const index=c.rules.indexOf(rule);
+  assert(index>=0,rule);
+  assert.equal(c.rules[index+1],`AND,((NETWORK,UDP),(DOMAIN-SUFFIX,${domain})),REJECT`);
+  assert.notEqual(route(c,`${domain}.unrelated.example`),key);
+ }
 });
 test('overseas retains tested OKX rules and adds bounded services without changing exit defaults',()=>{
  const input={target:'pc',airports:[{name:'A',url:'https://example.test/sub'}],bundle:{version:1,nodes:[],preferred:{}},enabled:[...OVERSEAS_GROUPS],defaults:{},domains:{},controllerSecret:''};

@@ -729,6 +729,7 @@
     "aliases": [
       "telegram",
       "Telegram",
+      "Telegram（默认香港自动）",
       "电报"
     ],
     "domains": [
@@ -739,7 +740,12 @@
       "telegra.ph",
       "telegram-cdn.org",
       "cdn-telegram.org",
-      "telesco.pe"
+      "telesco.pe",
+      "telegram.dog",
+      "tg.dev",
+      "tx.me",
+      "graph.org",
+      "usercontent.dev"
     ],
     "sources": [
       "https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geo/geosite/telegram.list"
@@ -796,7 +802,14 @@
       "facebook.com",
       "fbcdn.com",
       "fbcdn.net",
-      "fbcdn-a.akamaihd.net"
+      "fbcdn-a.akamaihd.net",
+      "facebook.net",
+      "fbsbx.com",
+      "fbsbx.net",
+      "fb.com",
+      "fb.me",
+      "fb.watch",
+      "fbwat.ch"
     ],
     "sources": [
       "https://raw.githubusercontent.com/metacubex/meta-rules-dat/meta/geo/geosite/facebook.list"

@@ -701,6 +701,7 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
                 }
             }
             "telegram" => {
+                rules.extend(routing::telegram_ip_rules(t));
                 rules.push(format!("- RULE-SET,Telegram / Domain,{t}"));
                 rules.push(format!("- RULE-SET,Telegram / IP,{t},no-resolve"));
             }
@@ -784,7 +785,7 @@ fn build_split_rules(apps: &[SplitApp]) -> String {
             _ => {}
         }
     }
-    routing::guarded(&format!("{}\n  {}", routing::catalog_rules(apps), rules.join("\n  ")))
+    routing::guarded(&format!("{}\n  {}\n  {}", routing::facebook_compat_rules(apps), routing::catalog_rules(apps), rules.join("\n  ")))
 }
 
 /// 策略组图标：用 icon.horse 按域名取每个 APP 的真实 logo（zashboard 渲染 `icon` 字段）。

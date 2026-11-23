@@ -261,7 +261,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       cat: "社交（默认不选美国独立 IP · 内容向）",
       apps: [
         { key: "tiktok", label: "TikTok（默认美国独立 IP）", on: true, relay: true },
-        { key: "telegram", label: "Telegram", on: true, relay: false },
+        { key: "telegram", label: "Telegram（默认香港自动）", on: true, relay: false },
         { key: "twitter", label: "Twitter(X)", on: true, relay: false },
         { key: "whatsapp", label: "WhatsApp", on: true, relay: false },
         { key: "facebook", label: "Facebook", on: true, relay: false },

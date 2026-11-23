@@ -18,7 +18,8 @@
     "test:overseas": "node --experimental-strip-types --test scripts/test-overseas.mjs",
     "test:ai": "node --experimental-strip-types --test scripts/test-ai-routing.mjs",
     "test:parsec": "node --experimental-strip-types --test scripts/test-parsec.mjs",
-    "test:routing": "node --experimental-strip-types --test scripts/test-routing-audit.mjs"
+    "test:routing": "node --experimental-strip-types --test scripts/test-routing-audit.mjs",
+    "test:social": "node --experimental-strip-types --test scripts/test-social.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",

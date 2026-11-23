@@ -17,6 +17,10 @@ pub fn catalog_rules(apps: &[SplitApp]) -> String {
         if matches!(app.key.as_str(), "chatgpt" | "claude" | "parsec" | "perforce" | "perforce_hk" | "google" | "apple" | "microsoft") { continue; }
         if let Some(site) = sites.iter().find(|s| s.key == app.key) {
             for domain in &site.domains {
+                // The Graph API is shared. When Facebook is selected, keep it
+                // with Facebook's page/media exit instead of WhatsApp's exit.
+                if app.key == "whatsapp" && domain == "graph.facebook.com"
+                    && apps.iter().any(|a| a.key == "facebook") { continue; }
                 rules.push(format!("- DOMAIN-SUFFIX,{domain},{}", app.name));
             }
         }
@@ -27,13 +31,30 @@ pub fn catalog_rules(apps: &[SplitApp]) -> String {
     rules.join("\n  ")
 }
 
+/// Prefer HTTPS/TCP for Facebook web/media when a proxy advertises UDP but its
+/// QUIC path is unreliable. Scope to these hosts and UDP/443, never global UDP.
+pub fn facebook_compat_rules(apps: &[SplitApp]) -> String {
+    if !apps.iter().any(|app| app.key == "facebook") { return String::new(); }
+    ["facebook.com", "facebook.net", "fbcdn.com", "fbcdn.net", "fbsbx.com", "fbsbx.net", "fbcdn-a.akamaihd.net"]
+        .iter().map(|host| format!("- AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,{host})),REJECT"))
+        .collect::<Vec<_>>().join("\n  ")
+}
+
+/// Official Telegram DC ranges also work before the remote IP set is fetched.
+pub fn telegram_ip_rules(target: &str) -> Vec<String> {
+    include_str!("../data/telegram-cidrs.txt").lines()
+        .map(str::trim).filter(|s| !s.is_empty() && !s.starts_with('#'))
+        .map(|cidr| format!("- {},{cidr},{target},no-resolve", if cidr.contains(':') { "IP-CIDR6" } else { "IP-CIDR" }))
+        .collect()
+}
+
 pub fn guarded(source: &str) -> String {
     let mut out = Vec::new();
     for line in source.lines().map(str::trim).filter(|s| !s.is_empty()) {
         out.push(line.to_string());
         let raw = line.strip_prefix("- ").unwrap_or(line).trim_matches('"');
         let mut parts: Vec<_> = raw.split(',').collect();
-        if !matches!(parts.first(), Some(&"DOMAIN") | Some(&"DOMAIN-SUFFIX") | Some(&"RULE-SET")) { continue; }
+        if !matches!(parts.first(), Some(&"DOMAIN") | Some(&"DOMAIN-SUFFIX") | Some(&"RULE-SET") | Some(&"IP-CIDR") | Some(&"IP-CIDR6")) { continue; }
         let no_resolve = parts.last() == Some(&"no-resolve");
         if no_resolve { parts.pop(); }
         let target = parts.pop().unwrap_or("");

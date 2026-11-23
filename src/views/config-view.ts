@@ -66,7 +66,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
     el("div", { class: "row-2" }, [field("协议", twProtocol), field("端口", twPort)]),
     el("div", { class: "row-2" }, [field("用户名", twUser), field("密码", twPassword)]),
     el("label", { class: "checkbox-row" }, [twTls, "HTTPS 代理（仅 HTTP 协议）"]),
-    el("div", { class: "field-hint" }, ["设备 → 机场台湾节点 → 台湾独立家宽 → 所选国际交易所。导入后在「台湾-中转」选台湾节点；首次默认拒绝，避免空组或选错出口。家宽不可用时连接失败，不切机场或直连。"]),
+    el("div", { class: "field-hint" }, ["设备 → 机场台湾节点 → 台湾独立家宽 → 所选国际交易所。首次默认使用订阅中的台湾节点，也可在「台湾-中转」手动更换；没有台湾节点时拒绝连接。家宽不可用时连接失败，不切机场或直连。"]),
     el("label", { class: "checkbox-row" }, [exchangeOnly, "精简模式：所选国际交易所 + 台湾影音，其余直连"]),
     el("div", { class: "field-hint" }, ["出口核验：访问 https://api4.ipify.org，对照家宽供应商提供的出口 IP。"]),
   ]);
@@ -508,11 +508,15 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
     setOpen(guided && categoryIndex === 0);
     let adder: ReturnType<typeof import("./category-sites").categorySiteAdder> | undefined;
     const getAdder = async () => {
-      if (!adder) adder = (await import("./category-sites")).categorySiteAdder(inner, c.cat, categorySites, {
-        names: () => [...appControls.map(a => a.name), ...categorySites.map(s => s.name), ...customRows.map(r => `自定义 · ${r.saved?.name ?? r.name.value.trim()}`)],
-        defaultExit: c.apps.some(a => exchangeKeys.has(a.key)) ? "台湾-自动" : c.apps.some(a => a.relay) ? "美国-自动" : "香港-自动",
-        changed: domainChange, selectionChanged: updateCatAll, edits: domainEdits,
-      });
+      if (!adder) {
+        const [{ categorySiteAdder }, { regionalExitOptions }, baseline] = await Promise.all([import("./category-sites"), import("../yaml-editor"), domainBaseline()]);
+        adder = categorySiteAdder(inner, c.cat, categorySites, {
+          names: () => [...appControls.map(a => a.name), ...categorySites.map(s => s.name), ...customRows.map(r => `自定义 · ${r.saved?.name ?? r.name.value.trim()}`)],
+          defaultExit: c.apps.some(a => exchangeKeys.has(a.key)) ? "台湾-自动" : c.apps.some(a => a.relay) ? "美国-自动" : "香港-自动",
+          exits: regionalExitOptions(baseline),
+          changed: domainChange, selectionChanged: updateCatAll, edits: domainEdits,
+        });
+      }
       return adder;
     };
     siteRestorers.set(c.cat, async saved => { (await getAdder()).restore(saved); });
@@ -671,7 +675,7 @@ export function renderConfigView(root: HTMLElement, guided = false): void {
       if (!adder) adder = (await import("./category-sites")).categorySiteAdder(inner, categoryId, categorySites, {
         names: () => [...appControls.map(a => a.name), ...categorySites.map(s => s.name), ...customRows.map(r => `自定义 · ${r.saved?.name ?? r.name.value.trim()}`)],
         get defaultExit() { return `自定义线路 · ${countryOptions.find(c => c[0] === row.saved?.country)?.[1] ?? "美国"}`; },
-        exitValue: label => `自定义线路 · ${label}`, displayName: () => row.saved?.name ?? name.value,
+        exits: countryOptions.map(([, label]) => ({ label, value: `自定义线路 · ${label}` })), displayName: () => row.saved?.name ?? name.value,
         changed: domainChange, selectionChanged: refreshSelection, edits: domainEdits,
       });
       return adder;

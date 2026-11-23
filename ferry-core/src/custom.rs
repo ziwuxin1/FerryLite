@@ -54,9 +54,11 @@ pub fn validate(input: &GenerateInput) -> Result<(), String> {
 
 pub fn groups(input: &GenerateInput) -> String {
     if input.custom_groups.is_empty() { return String::new(); }
+    let region_patterns: std::collections::BTreeMap<String, String> = serde_yaml::from_str(include_str!("../data/regions.json")).expect("region patterns");
     let mut out = Vec::new();
     for (_, label, filter) in COUNTRIES {
-        out.push(format!("- {{name: {}, type: url-test, include-all-providers: true, filter: {}, url: https://www.gstatic.com/generate_204, interval: 300, tolerance: 50}}", yaml_dq(&format!("自定义线路 · {label}")), yaml_dq(&format!("(?i)({filter})"))));
+        let pattern = region_patterns.get(*label).cloned().unwrap_or_else(|| format!("(?i)({filter})"));
+        out.push(format!("- {{name: {}, type: url-test, include-all-providers: true, filter: {}, url: https://www.gstatic.com/generate_204, interval: 300, tolerance: 50}}", yaml_dq(&format!("自定义线路 · {label}")), yaml_dq(&pattern)));
     }
     for group in &input.custom_groups {
         let selected = COUNTRIES.iter().find(|(key, _, _)| *key == group.country).unwrap();

@@ -17,7 +17,7 @@ export interface CategorySite {
 export function categorySiteAdder(host: HTMLElement, category: string, sites: CategorySite[], options: {
   names: () => string[];
   defaultExit: string;
-  exitValue?: (country: string) => string;
+  exits: { label: string; value: string }[];
   displayName?: () => string;
   changed: () => void;
   selectionChanged: () => void;
@@ -30,8 +30,7 @@ export function categorySiteAdder(host: HTMLElement, category: string, sites: Ca
   name.setAttribute("list", listId);
   const suggestions = el("datalist", { id: listId }, SITES.map(s => el("option", { value: s.name })));
   const domains = el("textarea", { rows: "4", "aria-label": `${displayCategory}：新站点域名`, placeholder: "每行一个域名，包含其全部子域名", style: "width:100%;box-sizing:border-box;padding:10px;font:inherit" }) as HTMLTextAreaElement;
-  const exits = ["美国", "香港", "台湾", "日本", "新加坡", "韩国", "英国", "德国", "法国", "加拿大", "澳大利亚", "荷兰"];
-  const upstream = el("select", { "aria-label": `${displayCategory}：新站点默认线路` }, exits.map(s => el("option", { value: options.exitValue?.(s) ?? `${s}-自动` }, [s]))) as HTMLSelectElement;
+  const upstream = el("select", { "aria-label": `${displayCategory}：新站点默认线路` }, options.exits.map(exit => el("option", { value: exit.value }, [exit.label]))) as HTMLSelectElement;
   const note = el("div", { class: "status-line", role: "status", "aria-live": "polite" });
   let editing: CategorySite | undefined;
   let editingRow: HTMLElement | undefined;

@@ -29,6 +29,8 @@ fn service_rules(rules: &mut Vec<String>, service: &Service, target: &str) {
     for ip in &service.ips {
         let kind=if ip.contains(':') {"IP-CIDR6"} else {"IP-CIDR"};
         rules.push(format!("- {kind},{ip},{target},no-resolve"));
+        // Raw-IP connections need the same UDP protection as domain matches.
+        rules.push(format!("- AND,((NETWORK,UDP),({kind},{ip},no-resolve)),REJECT"));
     }
 }
 pub fn rules(apps: &[SplitApp], claude_enabled: bool) -> String {
@@ -46,4 +48,19 @@ pub fn rules(apps: &[SplitApp], claude_enabled: bool) -> String {
     }
     service_rules(&mut rules,&d.shared,"AI公共服务");
     rules.join("\n  ")
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn claude_ip_rules_stop_udp_fall_through_after_tcp_only_exits() {
+        let source = super::rules(&[], true);
+        let lines: Vec<_> = source.lines().map(str::trim).collect();
+        for ip in super::data().claude.ips {
+            let kind = if ip.contains(':') { "IP-CIDR6" } else { "IP-CIDR" };
+            let rule = format!("- {kind},{ip},Claude,no-resolve");
+            let index = lines.iter().position(|line| *line == rule).unwrap();
+            assert_eq!(lines[index + 1], format!("- AND,((NETWORK,UDP),({kind},{ip},no-resolve)),REJECT"));
+        }
+    }
 }

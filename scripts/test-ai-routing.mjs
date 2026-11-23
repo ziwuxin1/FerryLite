@@ -57,8 +57,16 @@ for(const target of ['pc','nikki']) test(`${target}: AI owned and shared endpoin
 test('voice uses official IPs only on UDP 3478, with a no-fall-through guard',()=>{
   const rules=generate({}).rules;assert.ok(data.voice.cidrs.length>100);
   for(const ip of data.voice.cidrs){const kind=ip.includes(':')?'IP-CIDR6':'IP-CIDR';const matcher=`AND,((NETWORK,UDP),(DST-PORT,3478),(${kind},${ip},no-resolve))`;const at=rules.indexOf(matcher+',ChatGPT');assert.ok(at>=0,ip);assert.equal(rules[at+1],matcher+',REJECT');}
-  for(const ip of data.claude.ipCidrs)assert.ok(rules.includes(`${ip.includes(':')?'IP-CIDR6':'IP-CIDR'},${ip},Claude,no-resolve`));
   assert.ok(!rules.includes('IP-CIDR,160.79.104.0/21,Claude,no-resolve'));
+});
+for(const target of ['pc','nikki']) test(`${target}: Claude raw IPv4/IPv6 connections cannot fall through a TCP-only exit`,()=>{
+  const rules=generate({target}).rules;
+  for(const ip of data.claude.ipCidrs){
+    const kind=ip.includes(':')?'IP-CIDR6':'IP-CIDR';
+    const at=rules.indexOf(`${kind},${ip},Claude,no-resolve`);
+    assert.ok(at>=0,ip);
+    assert.equal(rules[at+1],`AND,((NETWORK,UDP),(${kind},${ip},no-resolve)),REJECT`,ip);
+  }
 });
 test('disabled ChatGPT does not leave dangling groups or voice rules',()=>{
   const c=generate({splitApps:[]});assert.ok(!c.rules.some(r=>r.endsWith(',ChatGPT')));

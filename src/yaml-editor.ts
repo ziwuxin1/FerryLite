@@ -111,6 +111,52 @@ export function readYaml(source: string) {
   return { doc, value, groups, rules, domains };
 }
 
+/** Offer only regional airport exits that the current generator actually emits. */
+export function regionalExitOptions(source: string): { label: string; value: string }[] {
+  return readYaml(source).groups
+    .filter(group => group.name.endsWith("-自动") && !["所有-自动", "其他-自动"].includes(group.name))
+    .map(group => ({ label: group.name.slice(0, -3), value: group.name }));
+}
+
+function udpFallbackGuard(rule: string): string | null {
+  const parts = rule.split(",").map(part => part.trim());
+  if (!["DOMAIN", "DOMAIN-SUFFIX", "RULE-SET", "IP-CIDR", "IP-CIDR6"].includes(parts[0])) return null;
+  const noResolve = parts[parts.length - 1] === "no-resolve";
+  if (noResolve) parts.pop();
+  if (parts.length !== 3 || ["DIRECT", "直连", "REJECT", "REJECT-DROP", "拒绝"].includes(parts[2])) return null;
+  parts.pop();
+  if (noResolve) parts.push("no-resolve");
+  return `AND,((NETWORK,UDP),(${parts.join(",")})),REJECT`;
+}
+
+function removalIndexes(rules: readonly string[], removals: ReadonlySet<number>): Set<number> {
+  const indexes = new Set(removals);
+  const facebookDomains = new Set(SITE_CATALOG.find(site => site.key === "facebook")?.domains ?? []);
+  const facebookRemoved = new Set<string>();
+  rules.forEach((rule, index) => {
+    if (!removals.has(index)) return;
+    const parts = rule.split(",").map(part => part.trim());
+    // Ferry emits this exact fallback immediately after its routed rule. Leave
+    // standalone guards and other matchers intact.
+    const guard = udpFallbackGuard(rule);
+    if (guard && rules[index + 1] === guard) indexes.add(index + 1);
+    if (parts[0] === "DOMAIN-SUFFIX" && facebookDomains.has(parts[1])) facebookRemoved.add(parts[1]);
+  });
+  for (const domain of facebookRemoved) {
+    // These browser QUIC guards precede the Facebook routes. Remove only the
+    // same host guard, and only if no retained explicit route still covers it.
+    const stillRouted = rules.some((rule, index) => {
+      if (removals.has(index)) return false;
+      const [kind, host] = rule.split(",").map(part => part.trim());
+      return kind === "DOMAIN" && host === domain || kind === "DOMAIN-SUFFIX" && (host === domain || domain.endsWith(`.${host}`));
+    });
+    if (stillRouted) continue;
+    const guard = `AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,${domain})),REJECT`;
+    rules.forEach((rule, index) => { if (rule === guard) indexes.add(index); });
+  }
+  return indexes;
+}
+
 function ruleTarget(rule: string): string | null {
   const parts = rule.split(",").map(s => s.trim());
   if (parts.length < 2 || parts[0] === "SUB-RULE") return null;
@@ -229,7 +275,8 @@ export function addSites(source: string, options: AddSiteOptions): { source: str
   rules.forEach((rule, i) => {
     if (protectedTargets.has(ruleTarget(rule) ?? "") || /^DOMAIN,(api\.ipify\.org|ifconfig\.me|ip\.sb|ipinfo\.io),Claude$/.test(rule) || (/^AND,/.test(rule) && /DOMAIN.*(okx|binance|bybit|bitget|kucoin|gate|ofiii)/i.test(rule))) insertion = i + 1;
   });
-  seq.items.splice(insertion, 0, ...added.map(rule => doc.createNode(rule)));
+  const guarded = added.flatMap(rule => { const guard = udpFallbackGuard(rule); return guard ? [rule, guard] : [rule]; });
+  seq.items.splice(insertion, 0, ...guarded.map(rule => doc.createNode(rule)));
   if (!group.icon || options.replaceIcon) {
     doc.setIn(["proxy-groups", group.index, "icon"], logoFor(normalized.domains[0]));
     changes.push("已自动设置站点 Logo 地址（由客户端加载）。");
@@ -241,7 +288,7 @@ export function addSites(source: string, options: AddSiteOptions): { source: str
 export function removeDomainRule(source: string, index: number, expected: string): string {
   const { doc, rules } = readYaml(source);
   if (rules[index] !== expected) throw new Error("规则已变化，请重新识别后再删除。");
-  doc.deleteIn(["rules", index]);
+  for (const at of [...removalIndexes(rules, new Set([index]))].sort((a, b) => b - a)) doc.deleteIn(["rules", at]);
   return finish(doc);
 }
 
@@ -320,9 +367,10 @@ export function applyGroupDomainEdits(source: string, edits: ReadonlyMap<string,
   const names = new Set(parsed.groups.map(g => g.name));
   const enabled = active.filter(([name]) => names.has(name));
   if (!enabled.length) return source;
-  const removals = new Set(enabled.flatMap(([, edit]) => edit.removedRules));
+  const removedRules = new Set(enabled.flatMap(([, edit]) => edit.removedRules));
+  const removals = removalIndexes(parsed.rules, new Set(parsed.rules.flatMap((rule, index) => removedRules.has(rule) ? [index] : [])));
   for (let i = parsed.rules.length - 1; i >= 0; i--) {
-    if (removals.has(parsed.rules[i])) parsed.doc.deleteIn(["rules", i]);
+    if (removals.has(i)) parsed.doc.deleteIn(["rules", i]);
   }
   let result = parsed.doc.toString({ lineWidth: 0 });
   for (const [target, edit] of enabled) {

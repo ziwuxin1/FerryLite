@@ -56,6 +56,31 @@ fn group<'a>(v: &'a Value, name: &str) -> &'a Value {
 }
 
 #[test]
+fn fallback_groups_keep_udp_on_the_selected_exit_or_reject() {
+    for target in [ConfigTarget::Pc, ConfigTarget::Nikki] {
+        let mut input = sample();
+        input.target = target;
+        let value = parsed(&input);
+        let rules: Vec<_> = value["rules"].as_sequence().unwrap().iter().map(|r| r.as_str().unwrap()).collect();
+        for (provider, group, no_resolve) in [
+            ("TEST / Domain", "Test", false),
+            ("Proxy / Domain", "国外", false),
+            ("Globe / Domain", "国外", false),
+            ("Direct / Domain", "国内", false),
+            ("China / Domain", "国内", false),
+            ("China / IP", "国内", true),
+            ("Private / Domain", "国内", false),
+        ] {
+            let tail = if no_resolve { ",no-resolve" } else { "" };
+            let rule = format!("RULE-SET,{provider},{group}{tail}");
+            let index = rules.iter().position(|r| *r == rule).unwrap();
+            assert_eq!(rules[index + 1], format!("AND,((NETWORK,UDP),(RULE-SET,{provider}{tail})),REJECT"));
+        }
+        assert_eq!(&rules[rules.len() - 3..], &["NETWORK,UDP,其他", "NETWORK,UDP,REJECT", "MATCH,其他"]);
+    }
+}
+
+#[test]
 fn perforce_servers_have_independent_routes_in_both_profiles() {
     for target in [ConfigTarget::Pc, ConfigTarget::Nikki] {
         let mut input = sample();
@@ -219,7 +244,10 @@ fn platform_mode_matrix_and_credentials() {
             for g in v["proxy-groups"].as_sequence().unwrap() {
                 assert!(g["include-all"].is_null());
             }
-            assert_eq!(group(&v, "台湾-中转")["proxies"][0], "REJECT");
+            let upstream = group(&v, "台湾-中转");
+            assert!(upstream["proxies"].is_null(), "A fixed REJECT first item prevents automatic provider selection");
+            assert_eq!(upstream["include-all-providers"], true);
+            assert_eq!(upstream["empty-fallback"], "REJECT");
             assert_eq!(
                 group(&v, "交易所-台湾家宽")["proxies"]
                     .as_sequence()

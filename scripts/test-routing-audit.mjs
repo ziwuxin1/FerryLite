@@ -3,7 +3,7 @@ import {parse} from 'yaml';import {initSync,generateConfig} from '../web/src/fer
 import {generateOverseas,OVERSEAS_GROUPS} from '../src/overseas-generator.ts';
 import {V77} from '../src/overseas-v77.ts';
 initSync({module:fs.readFileSync(new URL('../web/src/ferry-wasm/ferry_wasm_bg.wasm',import.meta.url))});
-const keys=['google','microsoft','amazon','youtube','github','npm','gemini','cursor','gitlab','dockerhub','huggingface','ea','ubisoft','metaai','okx','steam'];
+const keys=['google','microsoft','amazon','youtube','github','npm','gemini','cursor','gitlab','dockerhub','huggingface','ea','ubisoft','metaai','okx','steam','grok','twitter','gate','kucoin','whatsapp','discord'];
 const input={airports:[{name:'Audit',url:'https://example.test/sub'}],independentNodes:[],splitApps:keys.map(key=>({key,name:key,relay:false}))};
 // Minimal upstream company lists retain the overlaps that exposed the bug.
 const remote={'Google / Domain':['google.com','googlevideo.com','youtube.com','googleusercontent.com','googleapis.com'],'Microsoft / Domain':['github.com','githubusercontent.com','npmjs.org','blob.core.windows.net']};
@@ -13,6 +13,8 @@ for(const target of ['pc','nikki'])test(`${target}: specific service routes win 
  const c=parse(JSON.parse(generateConfig(JSON.stringify({...input,target}))).yaml,{merge:true});
  const cases={'api.github.com':'github','raw.githubusercontent.com':'github','registry.npmjs.org':'npm','www.youtube.com':'youtube','r1.googlevideo.com':'youtube','yt3.googleusercontent.com':'youtube','cursorapi.com':'cursor','cursorvm.com':'cursor','gitlab-static.net':'gitlab','dockerstatic.com':'dockerhub','hf.co':'huggingface','cloudsync-prod.s3.amazonaws.com':'ea','ubisoft-uplay-savegames.s3.amazonaws.com':'ubisoft','geminiweb-pa.clients.google.com':'gemini','steamcloudsweden.blob.core.windows.net':'steam','lh3.googleusercontent.com':'google'};
  for(const [host,expected]of Object.entries(cases))assert.equal(route(c,host),expected,host);
+ for(const [host,expected]of Object.entries({'grok.x.com':'grok','grokbot.com':'grok','grokipedia.com':'grok','api.gateio.ws':'gate','api-testnet.gateapi.io':'gate','gateimg.com':'gate','kucoin.plus':'kucoin','wa.me':'whatsapp','discord-attachments-uploads-prd.storage.googleapis.com':'discord'}))assert.equal(route(c,host),expected,host);
+ assert.equal(route(c,'unrelated.storage.googleapis.com'),'google');
  for(const name of ['Gemini / Domain','Meta AI / Domain','Amazon / Domain'])assert.equal(c['rule-providers'][name],undefined);
  for(const host of ['unrelated.s3.amazonaws.com','unrelated.cloudfront.net'])assert.notEqual(route(c,host),'amazon');
  for(const host of ['genspark.ai','manus.im','skywork.ai'])assert.notEqual(route(c,host),'metaai');
@@ -32,4 +34,15 @@ test('overseas retains tested OKX rules and adds bounded services without changi
  assert.equal(c['proxy-groups'].find(g=>g.name==='交易所').proxies[0],'台湾-出口');
  const disabled=parse(generateOverseas({...input,enabled:[]}).yaml);assert(!disabled.rules.some(r=>r.includes('RULE-SET,ABEMA')||r.includes('DOMAIN-SUFFIX,oklink.com')));
  for(const region of ['美国','台湾']){const regex=new RegExp(c['proxy-groups'].find(g=>g.name===region+'-机场').filter.replace('(?i)',''),'i');assert(regex.test(region==='美国'?'US01':'TW01'));}
+});
+test('custom and built-in regional pools accept the same city-only airport names',()=>{
+ for(const target of ['pc','nikki']) {
+  const c=parse(JSON.parse(generateConfig(JSON.stringify({...input,target,customGroups:[{name:'自选网站',domains:['custom.example.test'],country:'us'}]}))).yaml,{merge:true});
+  for(const [region,names]of Object.entries({'美国':['洛杉矶01','西雅图01','US01'],'日本':['东京01','大阪01','JP01'],'台湾':['台灣01','TW01'],'香港':['香港01','HK01'],'新加坡':['狮城01','SG01'],'韩国':['首尔01','KR01']})) {
+   const custom=c['proxy-groups'].find(g=>g.name==='自定义线路 · '+region),builtIn=c['proxy-groups'].find(g=>g.name===region+'-自动');
+   assert.equal(custom.filter,builtIn.filter,region);
+   const re=new RegExp(custom.filter.replace('(?i)',''),'i');for(const name of names)assert(re.test(name),name);
+   assert.equal(custom['empty-fallback'],'REJECT');
+  }
+ }
 });

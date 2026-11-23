@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { SITE_CATALOG, SITES } from '../src/site-catalog.ts';
 import { canIncludeApp } from '../src/exclusive-options.ts';
-import { addSites, applyAddedSites, applyGroupDomainEdits, completeSiteDomains, inspectYaml, normalizeDomain, normalizeDomains, readYaml, removeDomainRule, renameGroupDomainEdits, safeFix, setDefaultExit, setGroupIcon, siteSuggestion } from '../src/yaml-editor.ts';
+import { addSites, applyAddedSites, applyGroupDomainEdits, completeSiteDomains, inspectYaml, normalizeDomain, normalizeDomains, readYaml, regionalExitOptions, removeDomainRule, renameGroupDomainEdits, safeFix, setDefaultExit, setGroupIcon, siteSuggestion } from '../src/yaml-editor.ts';
 
 const original = `# keep this comment
 defaults: &base
@@ -162,6 +162,80 @@ test('generator domain edits reject conflicts and remove only selected remote bi
   assert.ok(!parsed.rules.some(r => r.startsWith('RULE-SET,')));
   assert.ok(parsed.value['rule-providers'].GamesList);
   assert.ok(parsed.domains.some(r => r.domain === 'old.example.com'));
+});
+
+test('every offered regional site exit exists in generated PC and router configurations', async () => {
+  const { initSync, generateConfig } = await import('../web/src/ferry-wasm/ferry_wasm.js');
+  initSync({ module: readFileSync(new URL('../web/src/ferry-wasm/ferry_wasm_bg.wasm', import.meta.url)) });
+  for (const target of ['pc', 'nikki']) {
+    const source = JSON.parse(generateConfig(JSON.stringify({ target, airports: [{ name: 'Test', url: 'https://example.test/sub' }], independentNodes: [], splitApps: [] }))).yaml;
+    const exits = regionalExitOptions(source);
+    assert.deepEqual(exits.map(exit => exit.label).sort(), ['香港', '台湾', '日本', '新加坡', '韩国', '美国'].sort());
+    for (const exit of exits) {
+      const changed = readYaml(applyAddedSites(source, [{ name: 'New site', domains: ['new.example.test'], upstream: exit.value }]));
+      assert.equal(changed.groups.find(group => group.name === 'New site').proxies[0], exit.value);
+    }
+  }
+});
+
+test('deleting generated domain, IP and remote rules removes only their adjacent UDP fallback guards', () => {
+  const routed = ['DOMAIN-SUFFIX,example.test,Games', 'DOMAIN,api.example.test,Games', 'IP-CIDR,149.154.160.0/20,Games,no-resolve', 'IP-CIDR6,2001:db8::/32,Games,no-resolve', 'RULE-SET,GamesList,Games'];
+  const guards = routed.map(rule => {
+    const parts = rule.split(','); const nr = parts.at(-1) === 'no-resolve'; if (nr) parts.pop(); parts.pop(); if (nr) parts.push('no-resolve');
+    return `AND,((NETWORK,UDP),(${parts.join(',')})),REJECT`;
+  });
+  const untouched = ['AND,((NETWORK,UDP),(DOMAIN-SUFFIX,protected.example.test)),REJECT', 'AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,example.test)),REJECT', 'AND,((NETWORK,UDP),(IP-CIDR,149.154.164.0/22,no-resolve)),REJECT'];
+  const source = original.replace('rules:', 'rule-providers:\n  GamesList: {type: inline, behavior: classical, payload: []}\nrules:').replace('  - MATCH,DIRECT', [...routed.flatMap((rule, i) => [rule, guards[i]]), ...untouched, 'MATCH,DIRECT'].map(rule => `  - ${rule}`).join('\n'));
+  const changed = readYaml(applyGroupDomainEdits(source, new Map([['Games', { removedRules: routed, domains: [] }]])));
+  for (const rule of [...routed, ...guards]) assert(!changed.rules.includes(rule), rule);
+  for (const rule of untouched) assert(changed.rules.includes(rule), rule);
+  const single = readYaml(source).domains.find(rule => rule.raw === routed[0]);
+  const removed = readYaml(removeDomainRule(source, single.index, single.raw));
+  assert(!removed.rules.includes(guards[0]));
+  assert(removed.rules.includes(guards[1]));
+});
+
+test('deleting Facebook media rules clears only unused matching QUIC guards', () => {
+  const guard = 'AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,fbcdn.net)),REJECT';
+  const other = 'AND,((NETWORK,UDP),(DST-PORT,443),(DOMAIN-SUFFIX,facebook.com)),REJECT';
+  const source = original.replace('  - MATCH,DIRECT', `  - ${guard}\n  - ${other}\n  - DOMAIN-SUFFIX,fbcdn.net,Games\n  - AND,((NETWORK,UDP),(DOMAIN-SUFFIX,fbcdn.net)),REJECT\n  - MATCH,DIRECT`);
+  const edits = new Map([['Games', { removedRules: ['DOMAIN-SUFFIX,fbcdn.net,Games'], domains: [] }]]);
+  const changed = readYaml(applyGroupDomainEdits(source, edits));
+  assert(!changed.rules.includes(guard));
+  assert(!changed.rules.includes('AND,((NETWORK,UDP),(DOMAIN-SUFFIX,fbcdn.net)),REJECT'));
+  assert(changed.rules.includes(other));
+  const shared = source.replace('  - MATCH,DIRECT', '  - DOMAIN-SUFFIX,fbcdn.net,Work\n  - MATCH,DIRECT');
+  assert(readYaml(applyGroupDomainEdits(shared, edits)).rules.includes(guard));
+});
+
+test('new domains keep UDP on the selected policy and do not duplicate guards', () => {
+  for (const exact of [false, true]) {
+    const kind = exact ? 'DOMAIN' : 'DOMAIN-SUFFIX';
+    const route = `${kind},new.example.test,Games`;
+    const guard = `AND,((NETWORK,UDP),(${kind},new.example.test)),REJECT`;
+    const options = { target: 'Games', text: 'new.example.test', exact, replaceIcon: false };
+    const first = addSites(original, options).source;
+    const parsed = readYaml(first);
+    assert.equal(parsed.rules[parsed.rules.indexOf(route) + 1], guard);
+    const repeated = readYaml(addSites(first, options).source);
+    assert.equal(repeated.rules.filter(rule => rule === guard).length, 1);
+    const rule = parsed.domains.find(rule => rule.raw === route);
+    assert(!readYaml(removeDomainRule(first, rule.index, rule.raw)).rules.includes(guard));
+    if (!exact) {
+      const moved = readYaml(applyGroupDomainEdits(first, new Map([
+        ['Games', { removedRules: [route], domains: [] }],
+        ['Work', { removedRules: [], domains: ['new.example.test'] }],
+      ])));
+      assert(!moved.rules.includes(route));
+      assert.equal(moved.rules.filter(rule => rule === guard).length, 1);
+      assert.equal(moved.rules[moved.rules.indexOf(`${kind},new.example.test,Work`) + 1], guard);
+    }
+  }
+  for (const target of ['直连', '拒绝']) {
+    const source = original.replace('name: Games', `name: ${target}`).replaceAll(',Games', `,${target}`);
+    const added = readYaml(addSites(source, { target, text: 'new.example.test', exact: false, replaceIcon: false }).source);
+    assert(!added.rules.includes('AND,((NETWORK,UDP),(DOMAIN-SUFFIX,new.example.test)),REJECT'));
+  }
 });
 
 test('parse merged groups and preserve comments, anchors, credentials and unknown fields', () => {

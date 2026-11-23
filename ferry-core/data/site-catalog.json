@@ -116,10 +116,13 @@
     ],
     "domains": [
       "grok.com",
-      "x.ai"
+      "x.ai",
+      "grok.x.com",
+      "grokbot.com",
+      "grokipedia.com"
     ],
     "sources": [
-      "ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"
+      "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/xai.list"
     ]
   },
   {
@@ -613,10 +616,11 @@
       "KuCoin"
     ],
     "domains": [
-      "kucoin.com"
+      "kucoin.com",
+      "kucoin.plus"
     ],
     "sources": [
-      "ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"
+      "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/kucoin.list"
     ]
   },
   {
@@ -628,10 +632,14 @@
     ],
     "domains": [
       "gate.io",
-      "gate.com"
+      "gate.com",
+      "gateio.ws",
+      "gateapi.io",
+      "gateimg.com"
     ],
     "sources": [
-      "ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"
+      "https://www.gate.com/docs/developers/apiv4/en/",
+      "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gateio.list"
     ]
   },
   {
@@ -784,9 +792,11 @@
       "whatsapp.com",
       "whatsapp.net",
       "whatsapp.biz",
+      "wa.me",
       "graph.facebook.com"
     ],
     "sources": [
+      "https://faq.whatsapp.com/5913398998672934",
       "https://gh-proxy.com/raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/Whatsapp/Whatsapp.list"
     ]
   },
@@ -844,10 +854,12 @@
       "discordapp.com",
       "discord.gg",
       "discordapp.net",
-      "discord.media"
+      "discord.media",
+      "discord-attachments-uploads-prd.storage.googleapis.com"
     ],
     "sources": [
-      "ferry-core/src/lib.rs:build_split_rules/ICON_DOMAINS"
+      "https://discord.com/app",
+      "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/discord.list"
     ]
   },
   {

@@ -53,9 +53,11 @@ pub fn node_line(node: &IndependentNode) -> String {
 }
 
 pub fn groups(input: &GenerateInput) -> String {
-    // Explicit REJECT remains even on older cores without empty-fallback support.
+    // Start on a matching Taiwan provider; an explicit first REJECT would keep
+    // this selector blocked even when the subscription supplies Taiwan nodes.
+    // Missing Taiwan nodes still fail closed through empty-fallback.
     // Provider-only inclusion excludes the local TW residential node by construction.
-    let mut lines = vec![format!("- {{name: {UPSTREAM}, type: select, proxies: [REJECT], include-all-providers: true, empty-fallback: REJECT, filter: \"(?i)(台湾|台灣|🇹🇼|Taiwan|Tai[ -]?Wan|\\\\bTW[0-9 -])\"}}")];
+    let mut lines = vec![format!("- {{name: {UPSTREAM}, type: select, include-all-providers: true, empty-fallback: REJECT, filter: \"(?i)(台湾|台灣|🇹🇼|Taiwan|Tai[ -]?Wan|\\\\bTW[0-9 -])\"}}")];
     lines.push(format!(
         "- {{name: 交易所-台湾家宽, type: select, proxies: [{NODE_NAME}, REJECT]}}"
     ));

@@ -70,6 +70,20 @@ export function generateOverseas(input: OverseasInput): {yaml:string;filename:st
     if(rule.endsWith(",REJECT"))return true;
     return enabled.has(rule.slice(rule.lastIndexOf(",")+1))||rule.endsWith(",test");
   });
+  // Mihomo skips an otherwise matching rule when its selected proxy cannot carry
+  // UDP. Keep that traffic from falling through to MATCH,直连, while allowing
+  // UDP-capable exits to use the original rule. Preserve the V77 guards already
+  // present, including their intentional priority and protocol restrictions.
+  const guardedMatchers=new Set(rules.flatMap(rule=>{
+    const match=rule.match(/^AND,\(\(NETWORK,UDP\),\((.*)\)\),REJECT$/);
+    return match?[match[1]]:[];
+  }));
+  const protectedRules=rules.flatMap(rule=>{
+    const match=rule.match(/^(DOMAIN(?:-SUFFIX|-KEYWORD)?|RULE-SET),(.+),([^,]+)$/);
+    if(!match||!enabled.has(match[3]))return [rule];
+    const matcher=`${match[1]},${match[2]}`;
+    return guardedMatchers.has(matcher)?[rule]:[rule,`AND,((NETWORK,UDP),(${matcher})),REJECT`];
+  });
   const additions:string[]=[];
   for(const name of OVERSEAS_GROUPS) if(enabled.has(name)&&input.domains[name]?.trim()) {
     const parsed=normalizeDomains(input.domains[name]);
@@ -85,7 +99,7 @@ export function generateOverseas(input: OverseasInput): {yaml:string;filename:st
     tun:router?{enable:true,device:"nikki",stack:"mixed","auto-route":false,"auto-redirect":false}:{enable:true,stack:"gvisor","auto-route":true,"strict-route":true,"auto-detect-interface":true,"dns-hijack":["any:53","tcp://any:53"]},
     profile:{"store-selected":true,"store-fake-ip":true},sniffer:V77.sniffer,
     proxies:[...bundle.nodes,{name:"直连",type:"direct"},{name:"拒绝",type:"reject"}],"proxy-providers":providers,"proxy-groups":groups,
-    "rule-providers":OVERSEAS_PROVIDERS,rules:[...additions,...rules],
+    "rule-providers":OVERSEAS_PROVIDERS,rules:[...additions,...protectedRules],
   };
   const yaml=`# FerryLite 海外模式 · 根据 V77 分流规则生成\n# 含私人节点信息，请勿公开分享。未匹配流量直连。\n${stringify(config,{lineWidth:0})}`;
   const errors=inspectYaml(yaml).filter(e=>e.severity==="error");
